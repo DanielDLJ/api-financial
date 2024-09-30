@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// npx prisma migrate dev --name init
+// npx prisma migrate reset
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id         Int          @id @default(autoincrement())
+  email      String       @unique @db.VarChar(240)
+  name       String       @db.VarChar(240)
+  password   String       @db.VarChar(240)
+  role       Role         @default(USER)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  deletedAt  DateTime?
+  creditCard CreditCard[]
+
+  @@map("users")
+}
+
+model Bank {
+  id         Int          @id @default(autoincrement())
+  name       String       @db.VarChar(200)
+  ispb       Int          @db.Int
+  code       Int          @db.Int
+  fullName   String       @db.VarChar(200)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  deletedAt  DateTime?
+  CreditCard CreditCard[]
+
+  @@map("banks")
+}
+
+model Flag {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique @db.VarChar(200)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  deletedAt   DateTime?
+  creditCards CreditCard[]
+
+  @@map("flags")
+}
+
+model CreditCard {
+  id          Int       @id @default(autoincrement())
+  cardName    String    @db.VarChar(200)
+  dueDate     Int       @db.Int
+  closingDate Int       @db.Int
+  creditLimit Float     @db.Float
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      Int
+  bankId      Int
+  flagId      Int
+  user        User      @relation(fields: [userId], references: [id])
+  bank        Bank      @relation(fields: [bankId], references: [id])
+  flag        Flag      @relation(fields: [flagId], references: [id])
+
+  @@unique([cardName, userId]) // unique constraint
+  @@map("credit-cards")
+}
