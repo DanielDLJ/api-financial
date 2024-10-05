@@ -6,6 +6,7 @@ import { configuration } from './common/config/configuration';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { CreditCardsModule } from './credit-cards/credit-cards.module';
+import { FlagsModule } from './flags/flags.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { CreditCardsModule } from './credit-cards/credit-cards.module';
     PrismaModule,
     AuthModule,
     CreditCardsModule,
+    FlagsModule,
   ],
 })
 export class AppModule {}
