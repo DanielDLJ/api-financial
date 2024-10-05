@@ -7,6 +7,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { CreditCardsModule } from './credit-cards/credit-cards.module';
 import { FlagsModule } from './flags/flags.module';
+import { BanksModule } from './banks/banks.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { FlagsModule } from './flags/flags.module';
     AuthModule,
     CreditCardsModule,
     FlagsModule,
+    BanksModule,
   ],
 })
 export class AppModule {}
