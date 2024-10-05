@@ -15,20 +15,15 @@ export class CreditCardsService {
     return this.creditCardsRepository.findAll(userId, query);
   }
 
-  async findOne(userId: number, creditCardId: number) {
+  async findOne(userId: number, creditCardId: number, showDeleted: boolean) {
     const creditCard = await this.creditCardsRepository.findOne(
       creditCardId,
-      true,
+      userId,
+      showDeleted,
     );
 
     if (!creditCard) {
       throw new NotFoundException(`Credit card #${creditCardId} not found`);
-    }
-
-    if (creditCard.userId !== userId) {
-      throw new NotFoundException(
-        `Credit card #${creditCardId} not found for user #${userId}`,
-      );
     }
 
     return creditCard;
@@ -39,7 +34,7 @@ export class CreditCardsService {
     creditCardId: number,
     updateCreditCardDto: UpdateCreditCardDto,
   ) {
-    await this.findOne(userId, creditCardId);
+    await this.findOne(userId, creditCardId, false);
 
     return await this.creditCardsRepository.update(
       creditCardId,
@@ -48,7 +43,7 @@ export class CreditCardsService {
   }
 
   async remove(userId: number, creditCardId: number) {
-    await this.findOne(userId, creditCardId);
+    await this.findOne(userId, creditCardId, false);
 
     return await this.creditCardsRepository.remove(creditCardId);
   }

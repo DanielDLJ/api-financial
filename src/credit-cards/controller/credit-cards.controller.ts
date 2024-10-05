@@ -15,6 +15,7 @@ import { UpdateCreditCardDto } from '../dto/update-credit-card.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { UserInterceptor } from '../interceptor/user.interceptor';
 import { ListAllDto } from '../../common/dto/list-all.dto';
+import { FindCreditCardDto } from '../dto/find-credit-card.dto';
 
 @Controller('users')
 @ApiTags('credit-cards')
@@ -39,8 +40,13 @@ export class CreditCardsController {
   findOne(
     @Param('userId') userId: string,
     @Param('creditCardId') creditCardId: string,
+    @Query() query: FindCreditCardDto,
   ) {
-    return this.creditCardsService.findOne(+userId, +creditCardId);
+    return this.creditCardsService.findOne(
+      +userId,
+      +creditCardId,
+      query.showDeleted,
+    );
   }
 
   @Patch(':userId/credit-cards/:creditCardId')
