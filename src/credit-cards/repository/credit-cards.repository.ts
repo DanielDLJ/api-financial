@@ -2,6 +2,7 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/service/prisma.service';
 import { CreateCreditCardDto } from '../dto/create-credit-card.dto';
@@ -40,10 +41,23 @@ export class CreditCardsRepository {
             },
           },
         },
+        include: {
+          bank: true,
+          flag: true,
+        },
       });
     } catch (error) {
-      if (error.code === 'P2002' && error.meta.target.includes('card_name')) {
+      if (
+        error.code === 'P2002' &&
+        error?.meta?.target === 'credit-cards_cardName_userId_key'
+      ) {
         throw new ConflictException('Card name already exists');
+      }
+      if (error.code === 'P2025' && error?.meta?.cause?.includes(`No 'Bank'`)) {
+        throw new NotFoundException('Bank not found');
+      }
+      if (error.code === 'P2025' && error?.meta?.cause?.includes(`No 'Flag'`)) {
+        throw new NotFoundException('Flag not found');
       }
       throw new InternalServerErrorException(error);
     }
@@ -60,6 +74,10 @@ export class CreditCardsRepository {
         where,
         take: limit,
         skip,
+        include: {
+          bank: true,
+          flag: true,
+        },
       });
       const total = await this.prisma.creditCard.count({ where });
       return new PaginatedResponseDto<CreditCard>(
@@ -73,15 +91,20 @@ export class CreditCardsRepository {
 
   async findOne(
     creditCardId: number,
+    userId: number,
     showDeleted?: boolean,
   ): Promise<CreditCard | null> {
     const where = showDeleted
-      ? { id: creditCardId }
-      : { id: creditCardId, deletedAt: null };
+      ? { id: creditCardId, userId }
+      : { id: creditCardId, userId, deletedAt: null };
 
     try {
       return await this.prisma.creditCard.findUnique({
         where,
+        include: {
+          bank: true,
+          flag: true,
+        },
       });
     } catch (error) {
       throw new InternalServerErrorException(error);
@@ -90,10 +113,23 @@ export class CreditCardsRepository {
 
   async update(id: number, data: UpdateCreditCardDto) {
     try {
-      return await this.prisma.creditCard.update({ where: { id }, data });
+      return await this.prisma.creditCard.update({
+        where: { id },
+        data,
+        include: { bank: true, flag: true },
+      });
     } catch (error) {
-      if (error.code === 'P2002' && error.meta.target.includes('card_name')) {
+      if (
+        error.code === 'P2002' &&
+        error?.meta?.target === 'credit-cards_cardName_userId_key'
+      ) {
         throw new ConflictException('Card name already exists');
+      }
+      if (error.code === 'P2003' && error?.meta?.field_name === 'bankId') {
+        throw new NotFoundException('Bank not found');
+      }
+      if (error.code === 'P2003' && error?.meta?.field_name === 'flagId') {
+        throw new NotFoundException('Flag not found');
       }
       throw new InternalServerErrorException(error);
     }
@@ -104,7 +140,11 @@ export class CreditCardsRepository {
       const data = {
         deletedAt: new Date(),
       };
-      return await this.prisma.creditCard.update({ where: { id }, data });
+      return await this.prisma.creditCard.update({
+        where: { id },
+        data,
+        include: { bank: true, flag: true },
+      });
     } catch (error) {
       throw new InternalServerErrorException(error);
     }
