@@ -46,14 +46,29 @@ CREATE TABLE `credit-cards` (
     `dueDate` INTEGER NOT NULL,
     `closingDate` INTEGER NOT NULL,
     `creditLimit` FLOAT NOT NULL,
-    `deletedAt` DATETIME(3) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
+    `deletedAt` DATETIME(3) NULL,
     `userId` INTEGER NOT NULL,
     `bankId` INTEGER NOT NULL,
     `flagId` INTEGER NOT NULL,
 
     UNIQUE INDEX `credit-cards_cardName_userId_key`(`cardName`, `userId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `expenses` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `description` VARCHAR(191) NULL,
+    `expense_date` DATETIME(3) NOT NULL,
+    `total_amount` DECIMAL(65, 30) NOT NULL,
+    `superficial` BOOLEAN NOT NULL DEFAULT false,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+    `deletedAt` DATETIME(3) NULL,
+    `userId` INTEGER NOT NULL,
+
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -65,3 +80,6 @@ ALTER TABLE `credit-cards` ADD CONSTRAINT `credit-cards_bankId_fkey` FOREIGN KEY
 
 -- AddForeignKey
 ALTER TABLE `credit-cards` ADD CONSTRAINT `credit-cards_flagId_fkey` FOREIGN KEY (`flagId`) REFERENCES `flags`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `expenses` ADD CONSTRAINT `expenses_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

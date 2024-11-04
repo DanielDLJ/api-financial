@@ -27,6 +27,7 @@ model User {
   updatedAt  DateTime     @updatedAt
   deletedAt  DateTime?
   creditCard CreditCard[]
+  Expense    Expense[]
 
   @@map("users")
 }
@@ -62,9 +63,9 @@ model CreditCard {
   dueDate     Int       @db.Int
   closingDate Int       @db.Int
   creditLimit Float     @db.Float
-  deletedAt   DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
   userId      Int
   bankId      Int
   flagId      Int
@@ -74,4 +75,19 @@ model CreditCard {
 
   @@unique([cardName, userId]) // unique constraint
   @@map("credit-cards")
+}
+
+model Expense {
+  id           Int       @id @default(autoincrement())
+  description  String?
+  expense_date DateTime
+  total_amount Decimal
+  superficial  Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id])
+
+  @@map("expenses")
 }

@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { CreditCardsModule } from './credit-cards/credit-cards.module';
 import { FlagsModule } from './flags/flags.module';
 import { BanksModule } from './banks/banks.module';
+import { ExpensesModule } from './expenses/expenses.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { BanksModule } from './banks/banks.module';
     CreditCardsModule,
     FlagsModule,
     BanksModule,
+    ExpensesModule,
   ],
 })
 export class AppModule {}
