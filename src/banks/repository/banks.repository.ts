@@ -31,7 +31,6 @@ export class BanksRepository {
       };
     }
 
-    console.log('query.code', typeof query.code, query.code);
     if (query.code) {
       where['code'] = query.code;
     }
