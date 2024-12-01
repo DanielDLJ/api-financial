@@ -17,13 +17,16 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:e2e": "jest --config test/jest-e2e.config.js",
     "prisma:migrate": "npx prisma migrate dev --preview-feature --name init",
     "prisma:reset": "npx prisma migrate reset",
     "prisma:merge": "npx prisma-merge",
     "prisma:seed": "npx prisma db seed",
     "prisma:run": "npm run prisma:merge & rimraf src/prisma/migrations & npx prisma migrate dev --preview-feature --name init & npm run prisma:generate & npx prisma db seed --preview-feature",
-    "prisma:run2": "npm run prisma:merge & rimraf src/prisma/migrations & npm run prisma:migrate & npm run prisma:seed"
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^9.0.0",
@@ -66,23 +69,6 @@
     "ts-node": "^10.0.0",
     "tsconfig-paths": "4.2.0",
     "typescript": "^5.0.0"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
