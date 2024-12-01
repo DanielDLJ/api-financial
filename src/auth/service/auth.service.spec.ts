@@ -88,7 +88,16 @@ describe('AuthService', () => {
       id: user.id,
       role: user.role,
     });
-    expect(result).toEqual({ access_token: token });
+    expect(result).toEqual({
+      access_token: token,
+      refresh_token: token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
   });
 
   it('should throw UnauthorizedException if user is not found', async () => {

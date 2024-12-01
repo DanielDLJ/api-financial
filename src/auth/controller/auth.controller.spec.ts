@@ -8,6 +8,7 @@ import { AuthService } from '../service/auth.service';
 import { AuthController } from './auth.controller';
 import { SignInDto } from '../dto/sign-in.dto';
 import { UsersRepository } from '../../users/repository/user.repository';
+import { Role } from '@prisma/client';
 
 describe('AuthController', () => {
   let authController: AuthController;
@@ -54,8 +55,17 @@ describe('AuthController', () => {
   });
 
   it('should sign in a user and return an access token', async () => {
-    const access_token = { access_token: 'fake-token' };
-    jest.spyOn(authService, 'signIn').mockResolvedValue(access_token);
+    const response = {
+      access_token: 'fake-token',
+      refresh_token: 'fake-token',
+      user: {
+        id: 1,
+        name: 'Ana',
+        email: 'ana@hotmail.com',
+        role: Role.USER,
+      },
+    };
+    jest.spyOn(authService, 'signIn').mockResolvedValue(response);
 
     const signInDto: SignInDto = {
       email,
@@ -65,6 +75,6 @@ describe('AuthController', () => {
     const result = await authController.signIn(signInDto);
 
     expect(authService.signIn).toHaveBeenCalledWith(email, password);
-    expect(result).toEqual(access_token);
+    expect(result).toEqual(response);
   });
 });
