@@ -40,12 +40,12 @@ async function bootstrap() {
   if (configService.getOrThrow<boolean>('swagger.enable')) {
     configSwagger(app);
   }
-  const corsOptions = {
-    // origin: 'http://meu-app-react-native.com', // Allow only this origin
-    optionsSuccessStatus: 200, // Some old browsers (IE11, some SmartTVs) cannot handle 204
-  };
-  app.enableCors(corsOptions);
 
-  await app.listen(configService.getOrThrow<number>('port'));
+  app.enableCors();
+
+  const port = configService.getOrThrow<number>('port');
+  await app.listen(port, '0.0.0.0', () => {
+    console.log('Server is running on port', port);
+  });
 }
 bootstrap();
