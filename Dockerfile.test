@@ -1,0 +1,24 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install dependencies
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    build-base
+
+# Copy package.json
+COPY package*.json ./
+RUN npm ci
+
+# Copy prisma files
+COPY prisma ./prisma/
+RUN npx prisma generate
+
+# Copy the rest of the files
+COPY . .
+
+# Run e2e tests
+CMD ["npm", "run", "test:e2e"]
