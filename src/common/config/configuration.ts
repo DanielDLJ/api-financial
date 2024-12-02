@@ -1,6 +1,6 @@
 export const configuration = () => {
   return {
-    port: Number(process.env.NODE_LOCAL_PORT) || 8080,
+    port: Number(process.env.PORT) || 8080,
     jwt: {
       secret: process.env.JWT_SECRET,
       expiresIn: process.env.JWT_EXPIRES_IN,
