@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { VALIDATION_PIPE_OPTIONS } from './common/config/validation.config';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -29,13 +30,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      forbidUnknownValues: true,
-      forbidNonWhitelisted: true,
-      whitelist: true,
-    }),
-  );
+  app.useGlobalPipes(new ValidationPipe(VALIDATION_PIPE_OPTIONS));
 
   if (configService.getOrThrow<boolean>('swagger.enable')) {
     configSwagger(app);

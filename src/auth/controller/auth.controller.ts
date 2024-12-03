@@ -17,7 +17,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Public()
-  @Post('login')
+  @Post('sign-in')
   @ApiOperation({ summary: 'Sign in' })
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({
@@ -33,7 +33,7 @@ export class AuthController {
   }
 
   @Public()
-  @Post('register')
+  @Post('sign-up')
   @ApiOperation({ summary: 'Sign up' })
   @HttpCode(HttpStatus.CREATED)
   @ApiOkResponse({

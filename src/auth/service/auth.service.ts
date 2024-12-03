@@ -1,10 +1,14 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../../users/service/users.service';
 import { EncryptionService } from '../../encryption/service/encryption.service';
 import { SignUpDto } from '../dto/sign-up.dto';
 import { CreateUserDto } from '../../users/dto/create-user.dto';
 import { Role } from '@prisma/client';
+import {
+  ApiErrorCode,
+  ApiException,
+} from '../../common/enums/api-error-codes.enum';
 
 @Injectable()
 export class AuthService {
@@ -17,16 +21,25 @@ export class AuthService {
   async signIn(email: string, pass: string) {
     const user = await this.usersService.findByEmail(email);
 
-    if (!user) throw new UnauthorizedException();
+    if (!user)
+      throw new ApiException({
+        code: ApiErrorCode.AUTH_USER_NOT_FOUND,
+        message: 'User not found',
+        statusCode: HttpStatus.UNAUTHORIZED,
+      });
 
     const isMatch = await this.encryptionService.compareHashPassword(
       pass,
       user?.password,
     );
 
-    if (!isMatch) {
-      throw new UnauthorizedException();
-    }
+    if (!isMatch)
+      throw new ApiException({
+        code: ApiErrorCode.AUTH_INVALID_CREDENTIALS,
+        message: 'Invalid credentials',
+        statusCode: HttpStatus.UNAUTHORIZED,
+      });
+
     const payload = { email: user.email, id: user.id, role: user.role };
     return {
       access_token: await this.jwtService.signAsync(payload),
@@ -45,7 +58,12 @@ export class AuthService {
   async signUp(signUpDto: SignUpDto) {
     const userExists = await this.usersService.findByEmail(signUpDto.email);
 
-    if (userExists) throw new UnauthorizedException();
+    if (userExists)
+      throw new ApiException({
+        code: ApiErrorCode.AUTH_USER_ALREADY_EXISTS,
+        message: 'User already exists.',
+        statusCode: HttpStatus.CONFLICT,
+      });
 
     const createUserDto: CreateUserDto = {
       email: signUpDto.email,

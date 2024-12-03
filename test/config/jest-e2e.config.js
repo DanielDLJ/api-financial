@@ -4,14 +4,14 @@ const { compilerOptions } = require('../../tsconfig.json');
 
 module.exports = {
   moduleFileExtensions: ['js', 'json', 'ts'],
-  rootDir: '..',
+  rootDir: '../..',
   testEnvironment: 'node',
   testRegex: '.e2e-spec.ts$',
   transform: {
     '^.+\\.(t|j)s$': 'ts-jest',
   },
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, {
-    prefix: '<rootDir>/../',
+    prefix: '<rootDir>/',
   }),
-  setupFilesAfterEnv: ['<rootDir>/config/setup-e2e.ts'],
+  setupFilesAfterEnv: ['<rootDir>/test/config/setup-e2e.ts'],
 };

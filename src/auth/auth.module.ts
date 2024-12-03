@@ -3,10 +3,11 @@ import { UsersModule } from '../users/users.module';
 import { AuthController } from './controller/auth.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AuthGuard } from './guard/auth.guard';
 import { AuthService } from './service/auth.service';
 import { EncryptionModule } from '../encryption/encryption.module';
+import { ErrorInterceptor } from '../common/interceptors/error.interceptor';
 
 @Module({
   controllers: [AuthController],
@@ -30,6 +31,10 @@ import { EncryptionModule } from '../encryption/encryption.module';
     {
       provide: APP_GUARD,
       useClass: AuthGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ErrorInterceptor,
     },
   ],
 })
