@@ -1,14 +1,12 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UsersService } from '../../users/service/users.service';
-import { EncryptionService } from '../../encryption/service/encryption.service';
+import { UsersService } from '@/users/service/users.service';
+import { EncryptionService } from '@/encryption/service/encryption.service';
 import { SignUpDto } from '../dto/sign-up.dto';
-import { CreateUserDto } from '../../users/dto/create-user.dto';
+import { CreateUserDto } from '@/users/dto/create-user.dto';
 import { Role } from '@prisma/client';
-import {
-  ApiErrorCode,
-  ApiException,
-} from '../../common/enums/api-error-codes.enum';
+import { ApiErrorCode } from '@/common/enums/api-error-codes.enum';
+import { ApiException } from '@/common/exceptions/api.exception';
 
 @Injectable()
 export class AuthService {

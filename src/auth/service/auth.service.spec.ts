@@ -1,17 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
-import { PrismaService } from '../../prisma/service/prisma.service';
-import { UsersService } from '../../users/service/users.service';
+import { PrismaService } from '@/prisma/service/prisma.service';
+import { UsersService } from '@/users/service/users.service';
 import { JwtService } from '@nestjs/jwt';
-import { EncryptionService } from '../../encryption/service/encryption.service';
+import { EncryptionService } from '@/encryption/service/encryption.service';
 import { ConfigService } from '@nestjs/config';
 import { Role, User } from '@prisma/client';
 import { HttpStatus } from '@nestjs/common';
-import { UsersRepository } from '../../users/repository/user.repository';
-import {
-  ApiErrorCode,
-  ApiException,
-} from '../../common/enums/api-error-codes.enum';
+import { UsersRepository } from '@/users/repository/user.repository';
+import { ApiErrorCode } from '@/common/enums/api-error-codes.enum';
+import { ApiException } from '@/common/exceptions/api.exception';
 import { SignUpDto } from '../dto/sign-up.dto';
 import { CreateUserDto } from '../../../src/users/dto/create-user.dto';
 

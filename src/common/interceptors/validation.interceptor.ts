@@ -7,7 +7,8 @@ import {
 } from '@nestjs/common';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { ApiErrorCode, ApiException } from '../enums/api-error-codes.enum';
+import { ApiErrorCode } from '../enums/api-error-codes.enum';
+import { ApiException } from '../exceptions/api.exception';
 
 @Injectable()
 export class ValidationInterceptor implements NestInterceptor {

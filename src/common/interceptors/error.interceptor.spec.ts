@@ -1,7 +1,8 @@
 import { CallHandler, ExecutionContext, HttpException } from '@nestjs/common';
 import { ErrorInterceptor } from './error.interceptor';
-import { ApiErrorCode, ApiException } from '../enums/api-error-codes.enum';
+import { ApiErrorCode } from '../enums/api-error-codes.enum';
 import { of, throwError } from 'rxjs';
+import { ApiException } from '../exceptions/api.exception';
 
 describe('ErrorInterceptor', () => {
   let interceptor: ErrorInterceptor;

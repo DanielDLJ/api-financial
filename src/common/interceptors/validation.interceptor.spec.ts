@@ -4,7 +4,8 @@ import {
   ExecutionContext,
 } from '@nestjs/common';
 import { ValidationInterceptor } from './validation.interceptor';
-import { ApiErrorCode, ApiException } from '../enums/api-error-codes.enum';
+import { ApiErrorCode } from '../enums/api-error-codes.enum';
+import { ApiException } from '../exceptions/api.exception';
 import { of, throwError } from 'rxjs';
 
 describe('ValidationInterceptor', () => {

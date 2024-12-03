@@ -11,16 +11,3 @@ export enum ApiErrorCode {
   INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
   DATABASE_ERROR = 'SERVER_002',
 }
-
-export interface ApiError {
-  code: ApiErrorCode;
-  message: string;
-  details?: any;
-  statusCode: number;
-}
-
-export class ApiException extends Error {
-  constructor(public readonly error: ApiError) {
-    super(error.message);
-  }
-}
