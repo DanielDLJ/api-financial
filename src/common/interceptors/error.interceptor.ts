@@ -4,10 +4,11 @@ import {
   ExecutionContext,
   CallHandler,
   HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { ApiException } from '../enums/api-error-codes.enum';
+import { ApiErrorCode, ApiException } from '../enums/api-error-codes.enum';
 
 @Injectable()
 export class ErrorInterceptor implements NestInterceptor {
@@ -27,6 +28,21 @@ export class ErrorInterceptor implements NestInterceptor {
               ),
           );
         }
+
+        if (error instanceof Error) {
+          return throwError(
+            () =>
+              new HttpException(
+                {
+                  code: ApiErrorCode.INTERNAL_SERVER_ERROR,
+                  message: 'An unexpected error occurred',
+                  details: error.message,
+                },
+                HttpStatus.INTERNAL_SERVER_ERROR,
+              ),
+          );
+        }
+
         return throwError(() => error);
       }),
     );

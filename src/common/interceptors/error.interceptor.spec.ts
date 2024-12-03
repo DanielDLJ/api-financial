@@ -55,17 +55,22 @@ describe('ErrorInterceptor', () => {
       });
     });
 
-    it('should pass through non-ApiException errors', (done) => {
-      const otherError = new Error('Some other error');
+    it('should transform Error into INTERNAL_SERVER_ERROR', (done) => {
+      const error = new Error('Some other error');
 
       mockCallHandler = {
-        handle: () => throwError(() => otherError),
+        handle: () => throwError(() => error),
       };
 
       interceptor.intercept(mockExecutionContext, mockCallHandler).subscribe({
-        error: (error) => {
-          expect(error).toBe(otherError);
-          expect(error).not.toBeInstanceOf(HttpException);
+        error: (error: HttpException) => {
+          expect(error).toBeInstanceOf(HttpException);
+          expect(error.getStatus()).toBe(500);
+          expect(error.getResponse()).toEqual({
+            code: ApiErrorCode.INTERNAL_SERVER_ERROR,
+            message: 'An unexpected error occurred',
+            details: 'Some other error',
+          });
           done();
         },
       });
