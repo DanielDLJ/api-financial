@@ -16,6 +16,9 @@ services:
         condition: service_healthy
     networks:
       - app-network
+    volumes:
+      - .:/app
+      - /app/node_modules
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:${PORT:-3001}/health"]
       interval: 10s
@@ -40,4 +43,4 @@ services:
 
 networks:
   app-network:
-    driver: bridge 
+    driver: bridge
