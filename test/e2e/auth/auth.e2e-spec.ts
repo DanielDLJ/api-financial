@@ -164,13 +164,15 @@ describe('AuthController (e2e)', () => {
         .send({})
         .expect(400);
 
-      expect(response.body.message).toEqual(
-        expect.arrayContaining([
+      expect(response.body).toEqual({
+        code: ApiErrorCode.VALIDATION_ERROR,
+        message: 'Validation failed',
+        details: expect.arrayContaining([
           'email must be a string',
           'password must be a string',
           'name must be a string',
         ]),
-      );
+      });
     });
   });
 });

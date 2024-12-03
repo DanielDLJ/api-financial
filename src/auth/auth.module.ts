@@ -8,6 +8,7 @@ import { AuthGuard } from './guard/auth.guard';
 import { AuthService } from './service/auth.service';
 import { EncryptionModule } from '../encryption/encryption.module';
 import { ErrorInterceptor } from '../common/interceptors/error.interceptor';
+import { ValidationInterceptor } from '../common/interceptors/validation.interceptor';
 
 @Module({
   controllers: [AuthController],
@@ -17,11 +18,13 @@ import { ErrorInterceptor } from '../common/interceptors/error.interceptor';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (config: ConfigService) => {
+      useFactory: (config: ConfigService) => {
         return {
           global: true,
-          secret: config.get<string>('jwt.secret'),
-          signOptions: { expiresIn: config.get<string>('jwt.expiresIn') },
+          secret: config.getOrThrow<string>('jwt.secret'),
+          signOptions: {
+            expiresIn: config.getOrThrow<string>('jwt.expiresIn'),
+          },
         };
       },
     }),
@@ -35,6 +38,10 @@ import { ErrorInterceptor } from '../common/interceptors/error.interceptor';
     {
       provide: APP_INTERCEPTOR,
       useClass: ErrorInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ValidationInterceptor,
     },
   ],
 })
