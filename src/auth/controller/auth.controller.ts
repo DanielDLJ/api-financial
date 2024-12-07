@@ -1,5 +1,5 @@
 import { Controller, Post, HttpStatus, HttpCode, Body } from '@nestjs/common';
-import { Public } from '../decorators/public.decorator';
+import { Public } from '@/common/decorators/public.decorator';
 import { AuthService } from '../service/auth.service';
 import {
   ApiOkResponse,

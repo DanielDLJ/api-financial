@@ -10,4 +10,10 @@ export enum ApiErrorCode {
   // Server errors - 5xx
   INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
   DATABASE_ERROR = 'SERVER_002',
+
+  // Authorization errors
+  FORBIDDEN = 'FORBIDDEN',
+
+  // Resource errors
+  NOT_FOUND = 'NOT_FOUND',
 }

@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { VALIDATION_PIPE_OPTIONS } from './common/config/validation.config';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -31,6 +32,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   app.useGlobalPipes(new ValidationPipe(VALIDATION_PIPE_OPTIONS));
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   if (configService.getOrThrow<boolean>('swagger.enable')) {
     configSwagger(app);

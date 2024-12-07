@@ -30,21 +30,21 @@ export class ErrorInterceptor implements NestInterceptor {
           );
         }
 
-        if (error instanceof Error) {
-          return throwError(
-            () =>
-              new HttpException(
-                {
-                  code: ApiErrorCode.INTERNAL_SERVER_ERROR,
-                  message: 'An unexpected error occurred',
-                  details: error.message,
-                },
-                HttpStatus.INTERNAL_SERVER_ERROR,
-              ),
-          );
+        if (error instanceof HttpException) {
+          return throwError(() => error);
         }
 
-        return throwError(() => error);
+        return throwError(
+          () =>
+            new HttpException(
+              {
+                code: ApiErrorCode.INTERNAL_SERVER_ERROR,
+                message: error.message || 'An unexpected error occurred',
+                details: error.message,
+              },
+              HttpStatus.INTERNAL_SERVER_ERROR,
+            ),
+        );
       }),
     );
   }

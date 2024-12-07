@@ -26,6 +26,7 @@ export class ValidationInterceptor implements NestInterceptor {
             statusCode: error.getStatus(),
           });
         }
+
         return throwError(() => error);
       }),
     );
