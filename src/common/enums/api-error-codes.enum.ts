@@ -16,4 +16,5 @@ export enum ApiErrorCode {
 
   // Resource errors
   NOT_FOUND = 'NOT_FOUND',
+  USER_NOT_FOUND = 'USER_NOT_FOUND',
 }
