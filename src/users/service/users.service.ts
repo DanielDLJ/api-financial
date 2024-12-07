@@ -41,10 +41,9 @@ export class UsersService {
     await this.findOne(id, false);
 
     if (updateUserDto.password) {
-      updateUserDto.password =
-        await this.encryptionService.generateHashPassword(
-          updateUserDto.password,
-        );
+      updateUserDto.password = this.encryptionService.generateHashPassword(
+        updateUserDto.password,
+      );
     }
 
     try {
