@@ -41,7 +41,7 @@ export class UsersService {
     return await this.usersRepository.findAll(query);
   }
 
-  async findOne(id: number, showDeleted?: boolean) {
+  async findOne(id: number, showDeleted = false) {
     const user = await this.usersRepository.findOne(id, showDeleted);
 
     if (!user) {
