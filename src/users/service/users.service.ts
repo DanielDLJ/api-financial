@@ -1,9 +1,9 @@
-import { HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
-import { EncryptionService } from '../../encryption/service/encryption.service';
-import { ListAllDto } from '../../common/dto/list-all.dto';
 import { UsersRepository } from '../repository/user.repository';
+import { EncryptionService } from '@/encryption/service/encryption.service';
+import { ListAllDto } from '@/common/dto/list-all.dto';
 import { ApiErrorCode } from '@/common/enums/api-error-codes.enum';
 import { ApiException } from '@/common/exceptions/api.exception';
 
@@ -15,11 +15,26 @@ export class UsersService {
   ) {}
 
   async create(createUserDto: CreateUserDto) {
-    createUserDto.password = this.encryptionService.generateHashPassword(
+    const existingUser = await this.usersRepository.findByEmail(
+      createUserDto.email,
+    );
+
+    if (existingUser) {
+      throw new ApiException({
+        code: ApiErrorCode.USER_ALREADY_EXISTS,
+        message: 'User already exists',
+        statusCode: HttpStatus.CONFLICT,
+      });
+    }
+
+    const hashedPassword = this.encryptionService.generateHashPassword(
       createUserDto.password,
     );
 
-    return await this.usersRepository.create(createUserDto);
+    return this.usersRepository.create({
+      ...createUserDto,
+      password: hashedPassword,
+    });
   }
 
   async findAll(query: ListAllDto) {
