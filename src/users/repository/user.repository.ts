@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  HttpStatus,
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -12,6 +13,8 @@ import {
   PaginatedResponseDto,
 } from '../../common/dto/paginated-response.dto';
 import { User } from '@prisma/client';
+import { ApiException } from '@/common/exceptions/api.exception';
+import { ApiErrorCode } from '@/common/enums/api-error-codes.enum';
 
 @Injectable()
 export class UsersRepository {
@@ -22,7 +25,11 @@ export class UsersRepository {
       return await this.prisma.user.create({ data: createUserDto });
     } catch (error) {
       if (error.code === 'P2002' && error.meta.target.includes('email')) {
-        throw new ConflictException('Email already exists');
+        throw new ApiException({
+          code: ApiErrorCode.USER_ALREADY_EXISTS,
+          message: 'Email already exists',
+          statusCode: HttpStatus.CONFLICT,
+        });
       }
       throw new InternalServerErrorException(error);
     }
@@ -82,7 +89,11 @@ export class UsersRepository {
       return await this.prisma.user.update({ where: { id }, data });
     } catch (error) {
       if (error.code === 'P2002' && error.meta.target.includes('email')) {
-        throw new ConflictException('Email already exists');
+        throw new ApiException({
+          code: ApiErrorCode.USER_ALREADY_EXISTS,
+          message: 'Email already exists',
+          statusCode: HttpStatus.CONFLICT,
+        });
       }
       throw new InternalServerErrorException(error);
     }
