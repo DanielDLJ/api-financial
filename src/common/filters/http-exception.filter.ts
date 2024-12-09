@@ -4,6 +4,7 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiException } from '../exceptions/api.exception';
@@ -23,10 +24,21 @@ export class HttpExceptionFilter implements ExceptionFilter {
       });
     }
 
+    if (exception instanceof BadRequestException) {
+      const exceptionResponse = exception.getResponse() as any;
+      return response.status(HttpStatus.BAD_REQUEST).json({
+        code: ApiErrorCode.VALIDATION_ERROR,
+        message: 'Validation failed',
+        details: exceptionResponse.message,
+      });
+    }
+
     if (exception instanceof HttpException) {
-      return response
-        .status(exception.getStatus())
-        .json(exception.getResponse());
+      const status = exception.getStatus();
+      return response.status(status).json({
+        code: ApiErrorCode.INTERNAL_SERVER_ERROR,
+        message: exception.message,
+      });
     }
 
     return response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({

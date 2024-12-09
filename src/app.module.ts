@@ -9,8 +9,7 @@ import { CreditCardsModule } from './credit-cards/credit-cards.module';
 import { FlagsModule } from './flags/flags.module';
 import { BanksModule } from './banks/banks.module';
 import { ExpensesModule } from './expenses/expenses.module';
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { ValidationInterceptor } from './common/interceptors/validation.interceptor';
+import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './common/guard/auth.guard';
 import { RolesGuard } from './common/guard/roles.guard';
 import { JwtModule } from '@nestjs/jwt';
@@ -49,10 +48,6 @@ import { JwtModule } from '@nestjs/jwt';
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: ValidationInterceptor,
     },
   ],
 })

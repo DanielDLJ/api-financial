@@ -31,8 +31,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
-  app.useGlobalPipes(new ValidationPipe(VALIDATION_PIPE_OPTIONS));
   app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalPipes(new ValidationPipe(VALIDATION_PIPE_OPTIONS));
 
   if (configService.getOrThrow<boolean>('swagger.enable')) {
     configSwagger(app);
