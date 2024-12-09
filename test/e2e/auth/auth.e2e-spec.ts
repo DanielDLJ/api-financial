@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { HttpStatus, INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
-import { AppModule } from '../../../src/app.module';
-import { PrismaService } from '../../../src/prisma/service/prisma.service';
+import { AppModule } from '@/app.module';
+import { PrismaService } from '@/prisma/service/prisma.service';
 import { Role } from '@prisma/client';
-import { ApiErrorCode } from '../../../src/common/enums/api-error-codes.enum';
-import { EncryptionModule } from '../../../src/encryption/encryption.module';
-import { EncryptionService } from '../../../src/encryption/service/encryption.service';
-import { VALIDATION_PIPE_OPTIONS } from '../../../src/common/config/validation.config';
+import { ApiErrorCode } from '@/common/enums/api-error-codes.enum';
+import { VALIDATION_PIPE_OPTIONS } from '@/common/config/validation.config';
+import { EncryptionService } from '@/encryption/service/encryption.service';
+import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication;
@@ -16,13 +16,14 @@ describe('AuthController (e2e)', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule, EncryptionModule],
+      imports: [AppModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
     prisma = app.get<PrismaService>(PrismaService);
     encryptionService = app.get<EncryptionService>(EncryptionService);
 
+    app.useGlobalFilters(new HttpExceptionFilter());
     app.useGlobalPipes(new ValidationPipe(VALIDATION_PIPE_OPTIONS));
 
     await app.init();
@@ -40,24 +41,15 @@ describe('AuthController (e2e)', () => {
   describe('/auth/sign-in (POST)', () => {
     it('should authenticate user with valid credentials', async () => {
       const password = 'password123';
-      const email = 'test@example.com';
-      const hashedPassword = encryptionService.generateHashPassword(password);
-      const user = await prisma.user.create({
-        data: {
-          email,
-          password: hashedPassword,
-          name: 'Test User',
-          role: Role.USER,
-        },
-      });
+      const user = await createUser(Role.USER, password);
 
       const response = await request(app.getHttpServer())
         .post('/auth/sign-in')
         .send({
-          email,
+          email: user.email,
           password,
         })
-        .expect(200);
+        .expect(HttpStatus.OK);
 
       expect(response.body).toHaveProperty('access_token');
       expect(response.body).toHaveProperty('refresh_token');
@@ -76,7 +68,7 @@ describe('AuthController (e2e)', () => {
           email: 'nonexistent@example.com',
           password: 'password123',
         })
-        .expect(401);
+        .expect(HttpStatus.UNAUTHORIZED);
 
       expect(response.body).toEqual({
         code: ApiErrorCode.AUTH_USER_NOT_FOUND,
@@ -86,71 +78,80 @@ describe('AuthController (e2e)', () => {
 
     it('should return error for invalid password', async () => {
       const password = 'password123';
-      const hashedPassword = encryptionService.generateHashPassword(password);
-      await prisma.user.create({
-        data: {
-          email: 'test@example.com',
-          password: hashedPassword,
-          name: 'Test User',
-          role: Role.USER,
-        },
-      });
+      const user = await createUser(Role.USER, password);
 
       const response = await request(app.getHttpServer())
         .post('/auth/sign-in')
         .send({
-          email: 'test@example.com',
+          email: user.email,
           password: 'wrongpassword',
         })
-        .expect(401);
+        .expect(HttpStatus.UNAUTHORIZED);
 
       expect(response.body).toEqual({
         code: ApiErrorCode.AUTH_INVALID_CREDENTIALS,
         message: 'Invalid credentials',
       });
     });
+
+    it('should validate required fields', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/auth/sign-in')
+        .send({})
+        .expect(HttpStatus.BAD_REQUEST);
+
+      expect(response.body).toEqual({
+        code: ApiErrorCode.VALIDATION_ERROR,
+        message: 'Validation failed',
+        details: expect.arrayContaining([
+          'email must be a string',
+          'password must be a string',
+        ]),
+      });
+    });
   });
 
   describe('/auth/sign-up (POST)', () => {
     it('should create new user', async () => {
+      const userData = {
+        email: 'newuser@example.com',
+        password: 'password123',
+        name: 'New User',
+      };
+
       const response = await request(app.getHttpServer())
         .post('/auth/sign-up')
-        .send({
-          email: 'newuser@example.com',
-          password: 'password123',
-          name: 'New User',
-        })
-        .expect(201);
+        .send(userData)
+        .expect(HttpStatus.CREATED);
 
       expect(response.body).toHaveProperty('access_token');
       expect(response.body).toHaveProperty('refresh_token');
       expect(response.body.user).toMatchObject({
-        email: 'newuser@example.com',
-        name: 'New User',
+        email: userData.email,
+        name: userData.name,
         role: Role.USER,
       });
+
+      // Verify user was created in database
+      const user = await prisma.user.findUnique({
+        where: { email: userData.email },
+      });
+      expect(user).toBeTruthy();
+      expect(user.role).toBe(Role.USER);
     });
 
     it('should return error for existing email', async () => {
       const password = 'password123';
-      const hashedPassword = encryptionService.generateHashPassword(password);
-      await prisma.user.create({
-        data: {
-          email: 'existing@example.com',
-          password: hashedPassword,
-          name: 'Existing User',
-          role: Role.USER,
-        },
-      });
+      const user = await createUser(Role.USER, password);
 
       const response = await request(app.getHttpServer())
         .post('/auth/sign-up')
         .send({
-          email: 'existing@example.com',
-          password: password,
+          email: user.email,
+          password,
           name: 'New User',
         })
-        .expect(409);
+        .expect(HttpStatus.CONFLICT);
 
       expect(response.body).toEqual({
         code: ApiErrorCode.AUTH_USER_ALREADY_EXISTS,
@@ -162,7 +163,7 @@ describe('AuthController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post('/auth/sign-up')
         .send({})
-        .expect(400);
+        .expect(HttpStatus.BAD_REQUEST);
 
       expect(response.body).toEqual({
         code: ApiErrorCode.VALIDATION_ERROR,
@@ -175,4 +176,17 @@ describe('AuthController (e2e)', () => {
       });
     });
   });
+
+  // Helper functions
+  const createUser = async (role: Role, password: string) => {
+    const hashedPassword = encryptionService.generateHashPassword(password);
+    return await prisma.user.create({
+      data: {
+        email: `test-${Date.now()}@example.com`,
+        password: hashedPassword,
+        name: 'Test User',
+        role,
+      },
+    });
+  };
 });
