@@ -1,71 +1,146 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+<div align="center">
+  <h1>🏦 API Financial</h1>
+  <p>A RESTful API for personal financial management</p>
+</div>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## 📋 Table of Contents
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+- [About](#-about)
+- [Technologies](#-technologies)
+- [Features](#-features)
+- [Getting Started](#-getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Configuration](#configuration)
+  - [Running the Project](#running-the-project)
+- [Tests](#-tests)
+- [API Documentation](#-api-documentation)
+- [Project Structure](#-project-structure)
+- [Contributing](#-contributing)
+- [License](#-license)
 
-## Description
+## 🎯 About
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+API Financial is a backend application developed with NestJS for personal financial management. The API allows you to manage credit cards, expenses, and more, focusing on security and development best practices.
 
-## Installation
+## 🚀 Technologies
+
+- [NestJS](https://nestjs.com/) - Progressive Node.js framework
+- [TypeScript](https://www.typescriptlang.org/) - JavaScript superset
+- [Prisma](https://www.prisma.io/) - Modern ORM
+- [MySQL](https://www.mysql.com/) - Relational database
+- [Docker](https://www.docker.com/) - Containerization
+- [Jest](https://jestjs.io/) - Testing framework
+- [Swagger](https://swagger.io/) - API documentation
+
+## ✨ Features
+
+- 👤 Authentication and Authorization
+
+  - JWT
+  - Roles (Admin/User)
+
+- 💳 Credit Cards
+
+  - Full CRUD
+  - Bank and flag associations
+  - Soft delete
+
+- 🏦 Banks and Flags
+
+  - Registration and listing
+  - Card associations
+
+- 💰 Expenses
+  - Full CRUD
+
+## 🏁 Getting Started
+
+### Prerequisites
+
+- Docker and Docker Compose
+- Node.js (v18+)
+- npm or yarn
+
+### Installation
 
 ```bash
-$ npm install
+# Clone the repository
+git clone https://github.com/your-username/api-financial.git
+
+# Enter the directory
+cd api-financial
+
+# Install dependencies
+npm install
 ```
 
-## Running the app
+### Configuration
+
+1. Copy the `.env.example` file to `.env`:
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cp .env.example .env
 ```
 
-## Test
+2. Configure environment variables in the `.env` file
+
+### Running the Project
 
 ```bash
-# unit tests
-$ npm run test
+# Development
+make up
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+# Production
+make up-prod
 ```
 
-## Support
+## 🧪 Tests
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```bash
+# Unit tests
+npm run test
 
-## Brazilian bank data
+# Integration tests
+make test-integration
 
-- Banco Central do Brasil - [csv](http://www.bcb.gov.br/pom/spb/estatistica/port/ParticipantesSTRport.csv)
+# Coverage
+npm run test:cov
+```
 
-## License
+## 📖 API Documentation
 
-Nest is [MIT licensed](LICENSE).
+Swagger documentation is available at:
+
+```
+http://localhost:3001/swagger
+```
+
+## 📁 Project Structure
+
+```
+src/
+|...
+├── common/         # Shared code
+├── credit-cards/   # Credit cards module
+├── users/          # Users module
+└── main.ts         # Application entry
+```
+
+## 🤝 Contributing
+
+1. Fork the project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+  Made with ❤️ by <a href="https://github.com/daniellj">Daniel Leme Junior</a>
+</div>
