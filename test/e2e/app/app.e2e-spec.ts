@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { HttpStatus, INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { AppModule } from '../../../src/app.module';
+import { AppModule } from '@/app.module';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication;
@@ -20,6 +20,6 @@ describe('AppController (e2e)', () => {
   });
 
   it('/ (GET)', () => {
-    return request(app.getHttpServer()).get('/').expect(404);
+    return request(app.getHttpServer()).get('/').expect(HttpStatus.NOT_FOUND);
   });
 });
