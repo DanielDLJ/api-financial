@@ -75,7 +75,7 @@ export class UsersService {
   }
 
   async remove(id: number) {
-    await this.findOne(id, true);
+    await this.findOne(id, false);
 
     return await this.usersRepository.remove(id);
   }
