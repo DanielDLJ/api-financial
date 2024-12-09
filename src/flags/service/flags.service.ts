@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { FlagsRepository } from '../repository/flags.repository';
 import { ListAllFlagsDto } from '../dto/list-all-flags.dto';
+import { ApiErrorCode } from '@/common/enums/api-error-codes.enum';
+import { ApiException } from '@/common/exceptions/api.exception';
 
 @Injectable()
 export class FlagsService {
@@ -14,7 +16,11 @@ export class FlagsService {
     const flag = await this.flagsRepository.findOne(id, showDeleted);
 
     if (!flag) {
-      throw new NotFoundException(`Flag #${id} not found`);
+      throw new ApiException({
+        code: ApiErrorCode.FLAG_NOT_FOUND,
+        message: `Flag #${id} not found`,
+        statusCode: HttpStatus.NOT_FOUND,
+      });
     }
     return flag;
   }

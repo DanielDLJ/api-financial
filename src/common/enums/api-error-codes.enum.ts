@@ -17,5 +17,6 @@ export enum ApiErrorCode {
   // Resource errors
   NOT_FOUND = 'NOT_FOUND',
   USER_NOT_FOUND = 'USER_NOT_FOUND',
+  FLAG_NOT_FOUND = 'FLAG_NOT_FOUND',
   USER_ALREADY_EXISTS = 'USER_ALREADY_EXISTS',
 }
