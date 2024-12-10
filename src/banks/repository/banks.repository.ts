@@ -48,12 +48,7 @@ export class BanksRepository {
         new MetaData(page, limit, total),
       );
     } catch (error) {
-      console.error(error);
-      throw new InternalServerErrorException({
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: 'Error finding banks',
-        cause: error,
-      });
+      throw new InternalServerErrorException(error);
     }
   }
 
@@ -66,11 +61,7 @@ export class BanksRepository {
       });
       return bank;
     } catch (error) {
-      throw new InternalServerErrorException({
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: 'Error finding bank',
-        cause: error,
-      });
+      throw new InternalServerErrorException(error);
     }
   }
 }
