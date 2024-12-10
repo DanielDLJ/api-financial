@@ -38,12 +38,7 @@ export class FlagsRepository {
         new MetaData(page, limit, total),
       );
     } catch (error) {
-      console.error(error);
-      throw new InternalServerErrorException({
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: 'Error finding flags',
-        cause: error,
-      });
+      throw new InternalServerErrorException(error);
     }
   }
 
@@ -56,11 +51,7 @@ export class FlagsRepository {
       });
       return user;
     } catch (error) {
-      throw new InternalServerErrorException({
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: 'Error finding flag',
-        cause: error,
-      });
+      throw new InternalServerErrorException(error);
     }
   }
 }
