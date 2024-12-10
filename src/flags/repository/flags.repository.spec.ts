@@ -37,7 +37,12 @@ describe('FlagsRepository', () => {
 
   describe('findAll', () => {
     it('should return paginated flags', async () => {
-      const query: ListAllFlagsDto = { page: 1, limit: 10, showDeleted: false };
+      const query: ListAllFlagsDto = {
+        page: 1,
+        limit: 10,
+        name: 'Test Flag',
+        showDeleted: false,
+      };
       const flags = [{ id: 1, name: 'Test Flag' }];
       const total = 1;
 
@@ -52,6 +57,14 @@ describe('FlagsRepository', () => {
         limit: query.limit,
         total,
         totalPages: Math.ceil(total / query.limit),
+      });
+      expect(mockPrismaService.flag.findMany).toHaveBeenCalledWith({
+        where: {
+          name: { contains: query.name },
+          deletedAt: null,
+        },
+        take: query.limit,
+        skip: 0,
       });
     });
 
