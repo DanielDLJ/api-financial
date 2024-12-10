@@ -179,12 +179,15 @@ describe('AuthController (e2e)', () => {
 
   // Helper functions
   const createUser = async (role: Role, password: string) => {
+    const timestamp = Date.now();
     const hashedPassword = encryptionService.generateHashPassword(password);
     return await prisma.user.create({
       data: {
-        email: `test-${Date.now()}@example.com`,
+        email: `test-${timestamp}-${Math.random()
+          .toString(36)
+          .substring(7)}@example.com`,
         password: hashedPassword,
-        name: 'Test User',
+        name: `Test User ${timestamp}`,
         role,
       },
     });
