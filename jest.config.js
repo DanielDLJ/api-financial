@@ -9,8 +9,18 @@ module.exports = {
   transform: {
     '^.+\\.(t|j)s$': 'ts-jest',
   },
-  collectCoverageFrom: ['**/*.(t|j)s'],
-  coverageDirectory: '../coverage',
+  collectCoverageFrom: [
+    'src/**/*.(t|j)s',
+    '!src/main.ts',
+    '!src/**/*.interface.ts',
+    '!src/**/*.mock.ts',
+    '!src/**/*.entity.ts',
+    '!src/**/*.dto.ts',
+    '!src/**/*.enum.ts',
+    '!src/**/*.module.ts',
+  ],
+  coverageDirectory: './coverage',
+  coverageReporters: ['text', 'lcov', 'html'],
   testEnvironment: 'node',
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, {
     prefix: '<rootDir>/',
