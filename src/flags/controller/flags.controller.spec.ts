@@ -5,6 +5,8 @@ import { ListAllDto } from '@/common/dto/list-all.dto';
 import { ApiException } from '@/common/exceptions/api.exception';
 import { ApiErrorCode } from '@/common/enums/api-error-codes.enum';
 import { HttpStatus } from '@nestjs/common';
+import { Role } from '@prisma/client';
+import { ROLES_KEY } from '@/common/decorators/roles.decorator';
 
 describe('FlagsController', () => {
   let controller: FlagsController;
@@ -101,6 +103,26 @@ describe('FlagsController', () => {
       mockFlagsService.findOne.mockRejectedValue(error);
 
       await expect(controller.findOne(flagId)).rejects.toThrow(error);
+    });
+  });
+
+  describe('Swagger', () => {
+    it('should have ApiTags decorator', () => {
+      const controllerMetadata = Reflect.getMetadata(
+        'swagger/apiUseTags',
+        FlagsController,
+      );
+      expect(controllerMetadata).toEqual(['flags']);
+    });
+
+    it('should have Roles decorator on findAll method', () => {
+      const rolesMetadata = Reflect.getMetadata(ROLES_KEY, controller.findAll);
+      expect(rolesMetadata).toEqual([Role.ADMIN, Role.USER]);
+    });
+
+    it('should have Roles decorator on findOne method', () => {
+      const rolesMetadata = Reflect.getMetadata(ROLES_KEY, controller.findOne);
+      expect(rolesMetadata).toEqual([Role.ADMIN, Role.USER]);
     });
   });
 });
