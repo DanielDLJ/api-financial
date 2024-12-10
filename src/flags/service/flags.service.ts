@@ -12,7 +12,7 @@ export class FlagsService {
     return await this.flagsRepository.findAll(query);
   }
 
-  async findOne(id: number, showDeleted?: boolean) {
+  async findOne(id: number, showDeleted = false) {
     const flag = await this.flagsRepository.findOne(id, showDeleted);
 
     if (!flag) {
@@ -22,6 +22,7 @@ export class FlagsService {
         statusCode: HttpStatus.NOT_FOUND,
       });
     }
+
     return flag;
   }
 }
