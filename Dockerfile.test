@@ -7,14 +7,21 @@ RUN apk add --no-cache \
     python3 \
     make \
     g++ \
-    build-base
+    build-base \
+    openssl \
+    openssl-dev \
+    libc6-compat
 
-# Copy package.json
+# Copy only the necessary files to install dependencies
 COPY package*.json ./
+
+# Install dependencies
 RUN npm ci
 
 # Copy prisma files
 COPY prisma ./prisma/
+
+# Generate prisma client
 RUN npx prisma generate
 
 # Copy the rest of the files
