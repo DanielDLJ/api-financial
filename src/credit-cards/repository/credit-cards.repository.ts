@@ -1,45 +1,26 @@
-import {
-  ConflictException,
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
-import { PrismaService } from '../../prisma/service/prisma.service';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { PrismaService } from '@/prisma/service/prisma.service';
 import { CreateCreditCardDto } from '../dto/create-credit-card.dto';
-import { ListAllDto } from 'src/common/dto/list-all.dto';
-import {
-  MetaData,
-  PaginatedResponseDto,
-} from '../../common/dto/paginated-response.dto';
-import { CreditCard } from '@prisma/client';
+import { ListAllDto } from '@/common/dto/list-all.dto';
 import { UpdateCreditCardDto } from '../dto/update-credit-card.dto';
+import { ApiException } from '@/common/exceptions/api.exception';
+import { ApiErrorCode } from '@/common/enums/api-error-codes.enum';
+import { HttpStatus } from '@nestjs/common';
 
 @Injectable()
 export class CreditCardsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(userId: number, createCreditCardDto: CreateCreditCardDto) {
-    const { bankId, flagId, ...rest } = createCreditCardDto;
+  async create(userId: number, data: CreateCreditCardDto) {
+    const { bankId, flagId, ...rest } = data;
 
     try {
       return await this.prisma.creditCard.create({
         data: {
           ...rest,
-          user: {
-            connect: {
-              id: userId,
-            },
-          },
-          bank: {
-            connect: {
-              id: bankId,
-            },
-          },
-          flag: {
-            connect: {
-              id: flagId,
-            },
-          },
+          user: { connect: { id: userId } },
+          bank: { connect: { id: bankId } },
+          flag: { connect: { id: flagId } },
         },
         include: {
           bank: true,
@@ -47,56 +28,49 @@ export class CreditCardsRepository {
         },
       });
     } catch (error) {
-      if (
-        error.code === 'P2002' &&
-        error?.meta?.target === 'credit-cards_cardName_userId_key'
-      ) {
-        throw new ConflictException('Card name already exists');
-      }
-      if (error.code === 'P2025' && error?.meta?.cause?.includes(`No 'Bank'`)) {
-        throw new NotFoundException('Bank not found');
-      }
-      if (error.code === 'P2025' && error?.meta?.cause?.includes(`No 'Flag'`)) {
-        throw new NotFoundException('Flag not found');
-      }
-      throw new InternalServerErrorException(error);
+      this.handleDatabaseError(error, userId, data);
     }
   }
 
   async findAll(userId: number, query: ListAllDto) {
     const { page, limit, showDeleted } = query;
     const skip = (page - 1) * limit;
-    const where = showDeleted ? {} : { deletedAt: null };
-    where['userId'] = userId;
+    const where = { userId, ...(showDeleted ? {} : { deletedAt: null }) };
 
     try {
-      const creditCards = await this.prisma.creditCard.findMany({
-        where,
-        take: limit,
-        skip,
-        include: {
-          bank: true,
-          flag: true,
+      const [creditCards, total] = await Promise.all([
+        this.prisma.creditCard.findMany({
+          where,
+          take: limit,
+          skip,
+          include: {
+            bank: true,
+            flag: true,
+          },
+        }),
+        this.prisma.creditCard.count({ where }),
+      ]);
+
+      return {
+        data: creditCards,
+        metaData: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
         },
-      });
-      const total = await this.prisma.creditCard.count({ where });
-      return new PaginatedResponseDto<CreditCard>(
-        creditCards,
-        new MetaData(page, limit, total),
-      );
+      };
     } catch (error) {
-      throw new InternalServerErrorException(error);
+      throw new InternalServerErrorException('Error fetching credit cards');
     }
   }
 
-  async findOne(
-    creditCardId: number,
-    userId: number,
-    showDeleted?: boolean,
-  ): Promise<CreditCard | null> {
-    const where = showDeleted
-      ? { id: creditCardId, userId }
-      : { id: creditCardId, userId, deletedAt: null };
+  async findOne(creditCardId: number, userId: number, showDeleted?: boolean) {
+    const where = {
+      id: creditCardId,
+      userId,
+      ...(showDeleted ? {} : { deletedAt: null }),
+    };
 
     try {
       return await this.prisma.creditCard.findUnique({
@@ -107,7 +81,7 @@ export class CreditCardsRepository {
         },
       });
     } catch (error) {
-      throw new InternalServerErrorException(error);
+      throw new InternalServerErrorException('Error fetching credit card');
     }
   }
 
@@ -119,34 +93,73 @@ export class CreditCardsRepository {
         include: { bank: true, flag: true },
       });
     } catch (error) {
-      if (
-        error.code === 'P2002' &&
-        error?.meta?.target === 'credit-cards_cardName_userId_key'
-      ) {
-        throw new ConflictException('Card name already exists');
-      }
-      if (error.code === 'P2003' && error?.meta?.field_name === 'bankId') {
-        throw new NotFoundException('Bank not found');
-      }
-      if (error.code === 'P2003' && error?.meta?.field_name === 'flagId') {
-        throw new NotFoundException('Flag not found');
-      }
-      throw new InternalServerErrorException(error);
+      this.handleDatabaseError(error, id, data);
     }
   }
 
   async remove(id: number) {
     try {
-      const data = {
-        deletedAt: new Date(),
-      };
       return await this.prisma.creditCard.update({
         where: { id },
-        data,
+        data: { deletedAt: new Date() },
         include: { bank: true, flag: true },
       });
     } catch (error) {
-      throw new InternalServerErrorException(error);
+      if (error.code === 'P2025') {
+        throw new ApiException({
+          code: ApiErrorCode.CREDIT_CARD_NOT_FOUND,
+          message: `Credit card #${id} not found`,
+          statusCode: HttpStatus.NOT_FOUND,
+        });
+      }
+      throw new InternalServerErrorException('Error removing credit card');
     }
+  }
+
+  private handleDatabaseError(
+    error: any,
+    userId: number,
+    data: Partial<CreateCreditCardDto>,
+  ) {
+    // Foreign key constraint errors
+    if (error.code === 'P2025') {
+      if (error.meta?.cause?.includes('User')) {
+        throw new ApiException({
+          code: ApiErrorCode.USER_NOT_FOUND,
+          message: `User #${userId} not found`,
+          statusCode: HttpStatus.NOT_FOUND,
+        });
+      }
+      if (error.meta?.cause?.includes('Flag')) {
+        throw new ApiException({
+          code: ApiErrorCode.FLAG_NOT_FOUND,
+          message: `Flag #${data.flagId} not found`,
+          statusCode: HttpStatus.NOT_FOUND,
+        });
+      }
+      if (error.meta?.cause?.includes('Bank')) {
+        throw new ApiException({
+          code: ApiErrorCode.BANK_NOT_FOUND,
+          message: `Bank #${data.bankId} not found`,
+          statusCode: HttpStatus.NOT_FOUND,
+        });
+      }
+    }
+
+    // Unique constraint errors
+    if (error.code === 'P2002') {
+      if (error.meta?.target?.includes('cardName')) {
+        throw new ApiException({
+          code: ApiErrorCode.CARD_NAME_ALREADY_EXISTS,
+          message: 'Card name already exists for this user',
+          statusCode: HttpStatus.CONFLICT,
+        });
+      }
+    }
+
+    // Generic database errors
+    throw new InternalServerErrorException(
+      'An unexpected error occurred while processing your request',
+    );
   }
 }
