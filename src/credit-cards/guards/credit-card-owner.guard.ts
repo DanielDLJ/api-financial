@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { ResourceOwnerGuard } from '@/common/guard/resource-owner.guard';
 import { CreditCardsService } from '../service/credit-cards.service';
+import { ApiErrorCode } from '@/common/enums/api-error-codes.enum';
+import { ApiException } from '@/common/exceptions/api.exception';
 
 @Injectable()
 export class CreditCardOwnerGuard extends ResourceOwnerGuard {
@@ -25,6 +27,15 @@ export class CreditCardOwnerGuard extends ResourceOwnerGuard {
       +resourceId,
       true,
     );
+
+    if (!creditCard) {
+      throw new ApiException({
+        code: ApiErrorCode.CREDIT_CARD_NOT_FOUND,
+        message: `Credit card #${resourceId} not found`,
+        statusCode: HttpStatus.NOT_FOUND,
+      });
+    }
+
     return creditCard.userId === userId;
   }
 }
