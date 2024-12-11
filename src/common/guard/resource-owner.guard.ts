@@ -25,11 +25,6 @@ export abstract class ResourceOwnerGuard implements CanActivate {
     const resourceId = this.getResourceId(params);
     const userId = this.getUserId(params);
 
-    // If there is no resource ID, allow (it can be a listing or creation)
-    if (!resourceId) {
-      return true;
-    }
-
     // Check if the user is trying to access their own resources
     if (userId !== user.id.toString()) {
       throw new ApiException({
@@ -37,6 +32,11 @@ export abstract class ResourceOwnerGuard implements CanActivate {
         message: 'You can only access your own resources',
         statusCode: HttpStatus.FORBIDDEN,
       });
+    }
+
+    // If there is no resource ID, allow (it can be a listing or creation)
+    if (!resourceId) {
+      return true;
     }
 
     return this.validateOwnership(user.id, resourceId);
