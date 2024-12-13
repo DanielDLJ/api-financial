@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/service/prisma.service';
 import { CreateCreditCardDto } from '../dto/create-credit-card.dto';
 import { ListAllDto } from '@/common/dto/list-all.dto';
@@ -61,7 +61,12 @@ export class CreditCardsRepository {
         },
       };
     } catch (error) {
-      throw new InternalServerErrorException('Error fetching credit cards');
+      throw new ApiException({
+        code: ApiErrorCode.INTERNAL_SERVER_ERROR,
+        message: 'Error fetching credit cards',
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        details: error.message,
+      });
     }
   }
 
@@ -81,7 +86,12 @@ export class CreditCardsRepository {
         },
       });
     } catch (error) {
-      throw new InternalServerErrorException('Error fetching credit card');
+      throw new ApiException({
+        code: ApiErrorCode.INTERNAL_SERVER_ERROR,
+        message: 'Error fetching credit card',
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        details: error.message,
+      });
     }
   }
 
@@ -112,7 +122,13 @@ export class CreditCardsRepository {
           statusCode: HttpStatus.NOT_FOUND,
         });
       }
-      throw new InternalServerErrorException('Error removing credit card');
+
+      throw new ApiException({
+        code: ApiErrorCode.INTERNAL_SERVER_ERROR,
+        message: 'Error removing credit card',
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        details: error.message,
+      });
     }
   }
 
@@ -158,8 +174,11 @@ export class CreditCardsRepository {
     }
 
     // Generic database errors
-    throw new InternalServerErrorException(
-      'An unexpected error occurred while processing your request',
-    );
+    throw new ApiException({
+      code: ApiErrorCode.INTERNAL_SERVER_ERROR,
+      message: 'An unexpected error occurred while processing your request',
+      details: error.message,
+      statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+    });
   }
 }
