@@ -14,4 +14,7 @@ module.exports = {
     prefix: '<rootDir>/',
   }),
   setupFilesAfterEnv: ['<rootDir>/test/config/setup-e2e.ts'],
+  maxWorkers: 1,
+  bail: true,
+  testSequencer: '<rootDir>/test/config/custom-sequencer.js',
 };
