@@ -13,7 +13,10 @@ module.exports = {
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, {
     prefix: '<rootDir>/',
   }),
-  setupFilesAfterEnv: ['<rootDir>/test/config/setup-e2e.ts'],
+  setupFilesAfterEnv: [
+    '<rootDir>/test/config/setup-e2e.ts',
+    '<rootDir>/test/config/setupFiles.ts',
+  ],
   maxWorkers: 1,
   bail: true,
   testSequencer: '<rootDir>/test/config/custom-sequencer.js',
