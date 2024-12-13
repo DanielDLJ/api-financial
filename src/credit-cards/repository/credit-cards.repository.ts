@@ -96,10 +96,16 @@ export class CreditCardsRepository {
   }
 
   async update(id: number, data: UpdateCreditCardDto) {
+    const { bankId, flagId, ...rest } = data;
+
     try {
       return await this.prisma.creditCard.update({
         where: { id },
-        data,
+        data: {
+          ...rest,
+          ...(bankId && { bank: { connect: { id: bankId } } }),
+          ...(flagId && { flag: { connect: { id: flagId } } }),
+        },
         include: { bank: true, flag: true },
       });
     } catch (error) {
