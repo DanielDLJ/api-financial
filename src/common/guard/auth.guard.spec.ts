@@ -1,159 +1,126 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
-import { Request } from 'express';
-import { AuthGuard } from './auth.guard';
+import { ExecutionContext, HttpStatus } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { AuthGuard } from './auth.guard';
+import { TokenService } from '@/token/service/token.service';
+import { ApiException } from '../exceptions/api.exception';
+import { ApiErrorCode } from '../enums/api-error-codes.enum';
+import { createMock } from '@golevelup/ts-jest';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-import { Role } from '@prisma/client';
 
 describe('AuthGuard', () => {
-  let authGuard: AuthGuard;
-  let jwtService: JwtService;
+  let guard: AuthGuard;
   let reflector: Reflector;
-  let configService: ConfigService;
+
+  const mockTokenService = {
+    verifyAccessToken: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        {
-          provide: ConfigService,
-          useValue: {
-            getOrThrow: jest.fn().mockImplementation((key: string) => {
-              if (key === 'jwt.secret') {
-                return process.env.JWT_SECRET;
-              }
-            }),
-          },
-        },
         AuthGuard,
-        JwtService,
         Reflector,
+        {
+          provide: TokenService,
+          useValue: mockTokenService,
+        },
       ],
     }).compile();
 
-    authGuard = module.get<AuthGuard>(AuthGuard);
-    jwtService = module.get<JwtService>(JwtService);
+    guard = module.get<AuthGuard>(AuthGuard);
     reflector = module.get<Reflector>(Reflector);
-    configService = module.get<ConfigService>(ConfigService);
   });
 
   it('should be defined', () => {
-    expect(authGuard).toBeDefined();
-    expect(jwtService).toBeDefined();
-    expect(reflector).toBeDefined();
-    expect(configService).toBeDefined();
+    expect(guard).toBeDefined();
   });
 
   it('should allow access if the route is public (isPublic)', async () => {
-    const context: ExecutionContext = {
-      getHandler: jest.fn(),
-      getClass: jest.fn(),
-      switchToHttp: () => ({
-        getRequest: () => ({}),
-      }),
-    } as any;
+    const context = createMock<ExecutionContext>();
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(true);
 
-    const isPublic = true;
+    const result = await guard.canActivate(context);
 
-    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(isPublic);
-
-    const result = await authGuard.canActivate(context);
-
+    expect(result).toBe(true);
     expect(reflector.getAllAndOverride).toHaveBeenCalledWith(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
-    expect(result).toBe(true);
   });
 
   it('should deny access if no token is provided', async () => {
-    const request = { path: '/users', headers: {} } as Request;
-    const context: ExecutionContext = {
-      getHandler: jest.fn(),
-      getClass: jest.fn(),
+    const context = createMock<ExecutionContext>({
       switchToHttp: () => ({
-        getRequest: () => request,
+        getRequest: () => ({
+          headers: {},
+        }),
       }),
-    } as any;
+    });
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
 
-    const isPublic = false;
-
-    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(isPublic);
-
-    await expect(authGuard.canActivate(context)).rejects.toThrowError(
-      UnauthorizedException,
+    await expect(guard.canActivate(context)).rejects.toThrow(
+      new ApiException({
+        code: ApiErrorCode.TOKEN_INVALID,
+        message: 'No token provided',
+        statusCode: HttpStatus.UNAUTHORIZED,
+      }),
     );
-
-    expect(reflector.getAllAndOverride).toHaveBeenCalledWith(IS_PUBLIC_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
   });
 
   it('should assign user payload to the request object if the token is valid', async () => {
-    const token = 'eyJhb';
+    const userPayload = {
+      sub: 1,
+      email: 'test@example.com',
+      role: 'USER',
+    };
     const request = {
-      path: '/users',
-      headers: { authorization: `Bearer ${token}` },
-    } as Request;
-    const context: ExecutionContext = {
-      getHandler: jest.fn(),
-      getClass: jest.fn(),
+      headers: {
+        authorization: 'Bearer valid-token',
+      },
+    };
+    const context = createMock<ExecutionContext>({
       switchToHttp: () => ({
         getRequest: () => request,
       }),
-    } as any;
-    const isPublic = false;
-    const payload = { email: 'ana@hotmail.com', id: 1, role: Role.USER };
-
-    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(isPublic);
-    jest.spyOn(jwtService, 'verifyAsync').mockResolvedValue(payload);
-
-    const result = await authGuard.canActivate(context);
-
-    expect(reflector.getAllAndOverride).toHaveBeenCalledWith(IS_PUBLIC_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-    expect(jwtService.verifyAsync).toHaveBeenCalledWith(token, {
-      secret: configService.getOrThrow('jwt.secret'),
     });
-    expect(context.switchToHttp().getRequest()['user']).toEqual(payload);
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
+    mockTokenService.verifyAccessToken.mockResolvedValue(userPayload);
+
+    const result = await guard.canActivate(context);
+
     expect(result).toBe(true);
+    expect(request['user']).toEqual(userPayload);
+    expect(mockTokenService.verifyAccessToken).toHaveBeenCalledWith(
+      'valid-token',
+    );
   });
 
   it('should deny access if the token is invalid', async () => {
-    const token = 'eyJhb';
-    const request = {
-      path: '/users',
-      headers: { authorization: `Bearer ${token}` },
-    } as Request;
-    const context: ExecutionContext = {
-      getHandler: jest.fn(),
-      getClass: jest.fn(),
+    const context = createMock<ExecutionContext>({
       switchToHttp: () => ({
-        getRequest: () => request,
+        getRequest: () => ({
+          headers: {
+            authorization: 'Bearer invalid-token',
+          },
+        }),
       }),
-    } as any;
-    const isPublic = false;
-
-    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(isPublic);
-    jest
-      .spyOn(jwtService, 'verifyAsync')
-      .mockRejectedValue(new Error('Invalid token'));
-
-    await expect(authGuard.canActivate(context)).rejects.toThrowError(
-      UnauthorizedException,
+    });
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
+    mockTokenService.verifyAccessToken.mockRejectedValue(
+      new ApiException({
+        code: ApiErrorCode.TOKEN_INVALID,
+        message: 'Invalid token',
+        statusCode: HttpStatus.UNAUTHORIZED,
+      }),
     );
 
-    expect(reflector.getAllAndOverride).toHaveBeenCalledWith(IS_PUBLIC_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-    expect(jwtService.verifyAsync).toHaveBeenCalledWith(token, {
-      secret: configService.getOrThrow('jwt.secret'),
-    });
+    await expect(guard.canActivate(context)).rejects.toThrow(
+      new ApiException({
+        code: ApiErrorCode.TOKEN_INVALID,
+        message: 'Invalid token',
+        statusCode: HttpStatus.UNAUTHORIZED,
+      }),
+    );
   });
 });

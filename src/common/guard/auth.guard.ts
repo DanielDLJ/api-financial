@@ -1,13 +1,15 @@
 import {
   CanActivate,
   ExecutionContext,
+  HttpStatus,
   Injectable,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { TokenService } from '@/token/service/token.service';
+import { ApiException } from '../exceptions/api.exception';
+import { ApiErrorCode } from '../enums/api-error-codes.enum';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -17,6 +19,7 @@ export class AuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // First check if the route is public
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -32,21 +35,34 @@ export class AuthGuard implements CanActivate {
 
     // If no token is provided, we deny access
     if (!token) {
-      throw new UnauthorizedException();
-    }
-    try {
-      // If a token is provided, we try to validate it
-      const payload = await this.tokenService.verifyAccessToken(token);
-      // Assigning the payload to the request object here
-      // so that we can access it in our route handlers
-      request['user'] = payload;
-    } catch (error) {
-      // If the token is invalid, we deny access
-      throw new UnauthorizedException();
+      throw new ApiException({
+        code: ApiErrorCode.TOKEN_INVALID,
+        message: 'No token provided',
+        statusCode: 401,
+      });
     }
 
-    // If we reach this point, we can assume that the user is authenticated
-    return true;
+    try {
+      // Validate token and get user payload
+      const payload = await this.tokenService.verifyAccessToken(token);
+
+      // Attach user payload to request object
+      // so that we can access it in our route handlers
+      request['user'] = payload;
+
+      return true;
+    } catch (error) {
+      // If the token is invalid, we deny access
+      if (error instanceof ApiException) {
+        throw error;
+      }
+
+      throw new ApiException({
+        code: ApiErrorCode.TOKEN_INVALID,
+        message: 'Invalid token',
+        statusCode: HttpStatus.UNAUTHORIZED,
+      });
+    }
   }
 
   private extractTokenFromHeader(request: Request): string | undefined {
