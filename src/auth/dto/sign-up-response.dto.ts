@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { randomUUID } from 'crypto';
 import { UserToken } from './user-token.dto';
 
-export class SignInResponseDto {
+export class SignUpResponseDto {
   @ApiProperty({ example: randomUUID() })
   access_token: string;
   @ApiProperty({ example: randomUUID() })

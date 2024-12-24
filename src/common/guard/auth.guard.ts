@@ -5,17 +5,15 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-import { ConfigService } from '@nestjs/config';
+import { TokenService } from '@/token/service/token.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
-    private jwtService: JwtService,
     private reflector: Reflector,
-    private configService: ConfigService,
+    private tokenService: TokenService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -38,9 +36,7 @@ export class AuthGuard implements CanActivate {
     }
     try {
       // If a token is provided, we try to validate it
-      const payload = await this.jwtService.verifyAsync(token, {
-        secret: this.configService.getOrThrow<string>('jwt.secret'),
-      });
+      const payload = await this.tokenService.verifyAccessToken(token);
       // Assigning the payload to the request object here
       // so that we can access it in our route handlers
       request['user'] = payload;

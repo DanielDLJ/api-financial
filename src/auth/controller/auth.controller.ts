@@ -10,6 +10,7 @@ import {
 import { SignInDto } from '../dto/sign-in.dto';
 import { SignInResponseDto } from '../dto/sign-in-response.dto';
 import { SignUpDto } from '../dto/sign-up.dto';
+import { SignUpResponseDto } from '../dto/sign-up-response.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -38,7 +39,7 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOkResponse({
     description: 'User registered',
-    type: SignInResponseDto,
+    type: SignUpResponseDto,
   })
   signUp(@Body() signUpDto: SignUpDto) {
     return this.authService.signUp(signUpDto);

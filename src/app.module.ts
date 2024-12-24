@@ -13,6 +13,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './common/guard/auth.guard';
 import { RolesGuard } from './common/guard/roles.guard';
 import { JwtModule } from '@nestjs/jwt';
+import { TokenModule } from './token/token.module';
 
 @Module({
   imports: [
@@ -23,12 +24,8 @@ import { JwtModule } from '@nestjs/jwt';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
+      useFactory: () => ({
         global: true,
-        secret: config.getOrThrow<string>('jwt.secret'),
-        signOptions: {
-          expiresIn: config.getOrThrow<string>('jwt.expiresIn'),
-        },
       }),
     }),
     UsersModule,
@@ -39,6 +36,7 @@ import { JwtModule } from '@nestjs/jwt';
     FlagsModule,
     BanksModule,
     ExpensesModule,
+    TokenModule,
   ],
   providers: [
     {

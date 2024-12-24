@@ -1,5 +1,4 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '@/users/service/users.service';
 import { EncryptionService } from '@/encryption/service/encryption.service';
 import { SignUpDto } from '../dto/sign-up.dto';
@@ -7,13 +6,15 @@ import { CreateUserDto } from '@/users/dto/create-user.dto';
 import { Role } from '@prisma/client';
 import { ApiErrorCode } from '@/common/enums/api-error-codes.enum';
 import { ApiException } from '@/common/exceptions/api.exception';
+import { TokenService } from '@/token/service/token.service';
+import { ITokenPayload } from '@/token/interface/token-payload.interface';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
-    private readonly jwtService: JwtService,
     private readonly encryptionService: EncryptionService,
+    private readonly tokenService: TokenService,
   ) {}
 
   async signIn(email: string, pass: string) {
@@ -38,19 +39,13 @@ export class AuthService {
         statusCode: HttpStatus.UNAUTHORIZED,
       });
 
-    const payload = { email: user.email, id: user.id, role: user.role };
-    return {
-      access_token: await this.jwtService.signAsync(payload),
-      refresh_token: await this.jwtService.signAsync(payload, {
-        expiresIn: '7d',
-      }),
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
+    const payload: ITokenPayload = {
+      sub: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
     };
+    return this.tokenService.generateToken(payload);
   }
 
   async signUp(signUpDto: SignUpDto) {
@@ -71,18 +66,12 @@ export class AuthService {
     };
     const user = await this.usersService.create(createUserDto);
 
-    const payload = { email: user.email, id: user.id, role: user.role };
-    return {
-      access_token: await this.jwtService.signAsync(payload),
-      refresh_token: await this.jwtService.signAsync(payload, {
-        expiresIn: '7d',
-      }),
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
+    const payload: ITokenPayload = {
+      sub: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
     };
+    return this.tokenService.generateToken(payload);
   }
 }
