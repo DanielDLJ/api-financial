@@ -1,179 +1,173 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
-import { PrismaService } from '@/prisma/service/prisma.service';
 import { UsersService } from '@/users/service/users.service';
-import { JwtService } from '@nestjs/jwt';
 import { EncryptionService } from '@/encryption/service/encryption.service';
-import { ConfigService } from '@nestjs/config';
-import { Role, User } from '@prisma/client';
-import { HttpStatus } from '@nestjs/common';
-import { UsersRepository } from '@/users/repository/user.repository';
-import { ApiErrorCode } from '@/common/enums/api-error-codes.enum';
+import { TokenService } from '@/token/service/token.service';
+import { Role } from '@prisma/client';
 import { ApiException } from '@/common/exceptions/api.exception';
-import { SignUpDto } from '../dto/sign-up.dto';
-import { CreateUserDto } from '../../../src/users/dto/create-user.dto';
+import { ApiErrorCode } from '@/common/enums/api-error-codes.enum';
+import { HttpStatus } from '@nestjs/common';
 
 describe('AuthService', () => {
-  let authService: AuthService;
-  let usersService: UsersService;
-  let encryptionService: EncryptionService;
-  let jwtService: JwtService;
-  const token = 'fake-token';
-  const email = 'ana@hotmail.com';
-  const password = '123456';
-  const user: User = {
-    id: 1,
-    name: 'Ana',
-    email,
-    password,
-    role: Role.USER,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    deletedAt: null,
+  let service: AuthService;
+
+  const mockUsersService = {
+    findByEmail: jest.fn(),
+    create: jest.fn(),
+  };
+
+  const mockEncryptionService = {
+    compareHashPassword: jest.fn(),
+    hashPassword: jest.fn(),
+  };
+
+  const mockTokenService = {
+    generateToken: jest.fn(),
+    verifyAccessToken: jest.fn(),
+    verifyRefreshToken: jest.fn(),
   };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        {
-          provide: ConfigService,
-          useValue: {
-            getOrThrow: jest.fn().mockImplementation((key: string) => {
-              if (key === 'encryption.secretKey') {
-                return process.env.ENCRYPTION_SECRET_KEY;
-              }
-              if (key === 'encryption.ivLength') {
-                return Number(process.env.ENCRYPTION_IV_LENGTH);
-              }
-              if (key === 'encryption.salt') {
-                return Number(process.env.ENCRYPTION_SALT);
-              }
-            }),
-          },
-        },
         AuthService,
-        UsersService,
-        PrismaService,
-        JwtService,
-        EncryptionService,
-        UsersRepository,
+        {
+          provide: UsersService,
+          useValue: mockUsersService,
+        },
+        {
+          provide: EncryptionService,
+          useValue: mockEncryptionService,
+        },
+        {
+          provide: TokenService,
+          useValue: mockTokenService,
+        },
       ],
     }).compile();
 
-    authService = module.get<AuthService>(AuthService);
-    usersService = module.get<UsersService>(UsersService);
-    encryptionService = module.get<EncryptionService>(EncryptionService);
-    jwtService = module.get<JwtService>(JwtService);
+    service = module.get<AuthService>(AuthService);
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
-    expect(authService).toBeDefined();
-    expect(usersService).toBeDefined();
-    expect(encryptionService).toBeDefined();
-    expect(jwtService).toBeDefined();
+    expect(service).toBeDefined();
   });
 
   describe('signIn', () => {
+    const email = 'test@example.com';
+    const password = 'password123';
+
     it('should sign in a user and return an access token', async () => {
-      jest.spyOn(usersService, 'findByEmail').mockResolvedValue(user);
-      jest
-        .spyOn(encryptionService, 'compareHashPassword')
-        .mockResolvedValue(true);
-      jest.spyOn(jwtService, 'signAsync').mockResolvedValue(token);
+      const user = {
+        id: 1,
+        email,
+        password: 'hashedPassword',
+        name: 'Test User',
+        role: Role.USER,
+      };
 
-      const result = await authService.signIn(email, password);
+      const expectedResponse = {
+        access_token: 'access-token',
+        refresh_token: 'refresh-token',
+        user: {
+          sub: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        },
+      };
 
-      expect(usersService.findByEmail).toHaveBeenCalledWith(email);
-      expect(encryptionService.compareHashPassword).toHaveBeenCalledWith(
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      mockEncryptionService.compareHashPassword.mockResolvedValue(true);
+      mockTokenService.generateToken.mockResolvedValue(expectedResponse);
+
+      const result = await service.signIn(email, password);
+
+      expect(result).toEqual(expectedResponse);
+      expect(mockUsersService.findByEmail).toHaveBeenCalledWith(email);
+      expect(mockEncryptionService.compareHashPassword).toHaveBeenCalledWith(
         password,
         user.password,
       );
-      expect(jwtService.signAsync).toHaveBeenCalledWith({
-        email: user.email,
-        id: user.id,
-        role: user.role,
-      });
-      expect(result).toEqual({
-        access_token: token,
-        refresh_token: token,
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        },
-      });
     });
 
     it('should throw UnauthorizedException if user is not found', async () => {
-      jest.spyOn(usersService, 'findByEmail').mockResolvedValue(undefined);
+      mockUsersService.findByEmail.mockResolvedValue(null);
 
-      await expect(authService.signIn(email, password)).rejects.toThrowError(
+      await expect(service.signIn(email, password)).rejects.toThrow(
         new ApiException({
           code: ApiErrorCode.AUTH_USER_NOT_FOUND,
           message: 'User not found',
           statusCode: HttpStatus.UNAUTHORIZED,
         }),
       );
-      expect(usersService.findByEmail).toHaveBeenCalledWith(email);
     });
 
     it('should throw UnauthorizedException if password does not match', async () => {
-      jest.spyOn(usersService, 'findByEmail').mockResolvedValue(user);
-      jest
-        .spyOn(encryptionService, 'compareHashPassword')
-        .mockResolvedValue(false);
+      const user = {
+        id: 1,
+        email,
+        password: 'hashedPassword',
+        name: 'Test User',
+        role: Role.USER,
+      };
 
-      await expect(authService.signIn(email, password)).rejects.toThrowError(
+      mockUsersService.findByEmail.mockResolvedValue(user);
+      mockEncryptionService.compareHashPassword.mockResolvedValue(false);
+
+      await expect(service.signIn(email, password)).rejects.toThrow(
         new ApiException({
           code: ApiErrorCode.AUTH_INVALID_CREDENTIALS,
           message: 'Invalid credentials',
-          statusCode: HttpStatus.UNAUTHORIZED,
+          statusCode: 401,
         }),
-      );
-      expect(usersService.findByEmail).toHaveBeenCalledWith(email);
-      expect(encryptionService.compareHashPassword).toHaveBeenCalledWith(
-        password,
-        user.password,
       );
     });
   });
 
   describe('signUp', () => {
-    const signUpDto: SignUpDto = {
-      name: user.name,
-      email: user.email,
-      password: user.password,
+    const signUpDto = {
+      name: 'Test User',
+      email: 'test@example.com',
+      password: 'password123',
     };
-    const createUserDto: CreateUserDto = {
-      email: signUpDto.email,
-      name: signUpDto.name,
-      password: signUpDto.password,
-      role: Role.USER,
-    };
+
     it('should sign up a user and return an access token', async () => {
-      jest.spyOn(usersService, 'findByEmail').mockResolvedValue(null);
-      jest.spyOn(usersService, 'create').mockResolvedValue(user);
-      jest.spyOn(jwtService, 'signAsync').mockResolvedValue(token);
+      const createdUser = {
+        id: 1,
+        ...signUpDto,
+        role: Role.USER,
+      };
 
-      const result = await authService.signUp(signUpDto);
-
-      expect(usersService.create).toHaveBeenCalledWith(createUserDto);
-      expect(result).toEqual({
-        access_token: token,
-        refresh_token: token,
+      const expectedResponse = {
+        access_token: 'access-token',
+        refresh_token: 'refresh-token',
         user: {
-          id: user.id,
-          name: signUpDto.name,
-          email: signUpDto.email,
-          role: user.role,
+          sub: createdUser.id,
+          email: createdUser.email,
+          name: createdUser.name,
+          role: createdUser.role,
         },
+      };
+
+      mockUsersService.findByEmail.mockResolvedValue(null);
+      mockUsersService.create.mockResolvedValue(createdUser);
+      mockTokenService.generateToken.mockResolvedValue(expectedResponse);
+
+      const result = await service.signUp(signUpDto);
+
+      expect(result).toEqual(expectedResponse);
+      expect(mockUsersService.create).toHaveBeenCalledWith({
+        ...signUpDto,
+        role: Role.USER,
       });
     });
-    it('should throw ConflictException if user already exists', async () => {
-      jest.spyOn(usersService, 'findByEmail').mockResolvedValue(user);
 
-      await expect(authService.signUp(signUpDto)).rejects.toThrowError(
+    it('should throw ConflictException if user already exists', async () => {
+      mockUsersService.findByEmail.mockResolvedValue({ id: 1 });
+
+      await expect(service.signUp(signUpDto)).rejects.toThrow(
         new ApiException({
           code: ApiErrorCode.AUTH_USER_ALREADY_EXISTS,
           message: 'User already exists.',
