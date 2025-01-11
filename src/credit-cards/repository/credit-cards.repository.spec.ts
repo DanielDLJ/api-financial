@@ -261,7 +261,18 @@ describe('CreditCardsRepository', () => {
       expect(result).toEqual(expectedResult);
       expect(mockPrismaService.creditCard.update).toHaveBeenCalledWith({
         where: { id: creditCardId },
-        data: updateDto,
+        data: {
+          cardName: updateDto.cardName,
+          creditLimit: updateDto.creditLimit,
+          closingDate: updateDto.closingDate,
+          dueDate: updateDto.dueDate,
+          flag: {
+            connect: { id: updateDto.flagId },
+          },
+          bank: {
+            connect: { id: updateDto.bankId },
+          },
+        },
         include: { bank: true, flag: true },
       });
     });
