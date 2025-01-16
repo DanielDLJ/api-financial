@@ -141,7 +141,12 @@ export class TokenService {
 
   decodeToken(token: string): ITokenPayload {
     try {
-      return this.jwtService.decode(token) as ITokenPayload;
+      const decoded = this.jwtService.decode(token);
+      if (!decoded) {
+        throw new Error('Token is invalid');
+      }
+
+      return decoded as ITokenPayload;
     } catch {
       throw new ApiException({
         code: ApiErrorCode.TOKEN_DECODE_ERROR,
