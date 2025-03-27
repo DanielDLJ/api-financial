@@ -8,11 +8,11 @@ describe('Configuration', () => {
     process.env = {
       NODE_ENV: 'test',
       PORT: '3001',
-      DATABASE_HOST: 'localhost',
-      DATABASE_PORT: '3306',
-      DATABASE_USER: 'root',
-      DATABASE_PASS: 'password',
-      DATABASE_NAME: 'test_db',
+      DB_HOST: 'localhost',
+      DB_PORT: '3306',
+      DB_USER: 'root',
+      DB_PASS: 'password',
+      DB_NAME: 'test_db',
       JWT_ACCESS_SECRET: 'access-secret',
       JWT_ACCESS_EXPIRES_IN: '15m',
       JWT_REFRESH_SECRET: 'refresh-secret',
@@ -65,7 +65,7 @@ describe('Configuration', () => {
     });
 
     it('should parse DB_PORT as number', () => {
-      process.env.DATABASE_PORT = '5432';
+      process.env.DB_PORT = '5432';
       const config = configuration();
 
       expect(config.database.port).toBe(5432);

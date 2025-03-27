@@ -35,11 +35,11 @@ export const configuration = (): Config => {
       port: Number(process.env.PORT) || 8080,
     },
     database: {
-      host: process.env.DATABASE_HOST,
-      port: Number(process.env.DATABASE_PORT),
-      user: process.env.DATABASE_USER,
-      pass: process.env.DATABASE_PASS,
-      name: process.env.DATABASE_NAME,
+      host: process.env.DB_HOST,
+      port: Number(process.env.DB_PORT),
+      user: process.env.DB_USER,
+      pass: process.env.DB_PASS,
+      name: process.env.DB_NAME,
     },
     jwt: {
       access: {
