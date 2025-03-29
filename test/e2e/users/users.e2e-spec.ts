@@ -7,15 +7,15 @@ import { Role } from '@prisma/client';
 import { ApiErrorCode } from '@/common/enums/api-error-codes.enum';
 import { VALIDATION_PIPE_OPTIONS } from '@/common/config/validation.config';
 import { EncryptionService } from '@/encryption/service/encryption.service';
-import { JwtService } from '@nestjs/jwt';
 import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
 import { CreateUserDto } from '@/users/dto/create-user.dto';
+import { TokenService } from '@/token/service/token.service';
 
 describe('UsersController (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let encryptionService: EncryptionService;
-  let jwtService: JwtService;
+  let tokenService: TokenService;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -25,7 +25,7 @@ describe('UsersController (e2e)', () => {
     app = moduleFixture.createNestApplication();
     prisma = app.get<PrismaService>(PrismaService);
     encryptionService = app.get<EncryptionService>(EncryptionService);
-    jwtService = app.get<JwtService>(JwtService);
+    tokenService = app.get<TokenService>(TokenService);
 
     app.useGlobalFilters(new HttpExceptionFilter());
     app.useGlobalPipes(new ValidationPipe(VALIDATION_PIPE_OPTIONS));
@@ -41,10 +41,21 @@ describe('UsersController (e2e)', () => {
     await prisma.user.deleteMany();
     await app.close();
   });
+
   describe('POST /users', () => {
     it('should require authentication', () => {
       return request(app.getHttpServer())
         .post('/users')
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+
+    it('should return 401 for refresh token', async () => {
+      const user = await createUser(Role.USER);
+      const refreshToken = await generateRefreshToken(user);
+
+      return request(app.getHttpServer())
+        .post('/users')
+        .set('Authorization', `Bearer ${refreshToken}`)
         .expect(HttpStatus.UNAUTHORIZED);
     });
 
@@ -123,6 +134,16 @@ describe('UsersController (e2e)', () => {
         .expect(HttpStatus.UNAUTHORIZED);
     });
 
+    it('should return 401 for refresh token', async () => {
+      const user = await createUser(Role.USER);
+      const refreshToken = await generateRefreshToken(user);
+
+      return request(app.getHttpServer())
+        .get('/users')
+        .set('Authorization', `Bearer ${refreshToken}`)
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+
     it('should require admin role', async () => {
       const user = await createUser(Role.USER);
       const token = await generateToken(user);
@@ -155,6 +176,16 @@ describe('UsersController (e2e)', () => {
     it('should require authentication', () => {
       return request(app.getHttpServer())
         .get('/users/1')
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+
+    it('should return 401 for refresh token', async () => {
+      const user = await createUser(Role.USER);
+      const refreshToken = await generateRefreshToken(user);
+
+      return request(app.getHttpServer())
+        .get('/users/1')
+        .set('Authorization', `Bearer ${refreshToken}`)
         .expect(HttpStatus.UNAUTHORIZED);
     });
 
@@ -208,6 +239,16 @@ describe('UsersController (e2e)', () => {
         .expect(HttpStatus.UNAUTHORIZED);
     });
 
+    it('should return 401 for refresh token', async () => {
+      const user = await createUser(Role.USER);
+      const refreshToken = await generateRefreshToken(user);
+
+      return request(app.getHttpServer())
+        .patch('/users/1')
+        .set('Authorization', `Bearer ${refreshToken}`)
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+
     it('should allow user to update their own profile', async () => {
       const user = await createUser(Role.USER);
       const token = await generateToken(user);
@@ -244,6 +285,16 @@ describe('UsersController (e2e)', () => {
     it('should require authentication', () => {
       return request(app.getHttpServer())
         .delete('/users/1')
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+
+    it('should return 401 for refresh token', async () => {
+      const user = await createUser(Role.USER);
+      const refreshToken = await generateRefreshToken(user);
+
+      return request(app.getHttpServer())
+        .delete('/users/1')
+        .set('Authorization', `Bearer ${refreshToken}`)
         .expect(HttpStatus.UNAUTHORIZED);
     });
 
@@ -307,8 +358,18 @@ describe('UsersController (e2e)', () => {
   };
 
   const generateToken = async (user: any) => {
-    return jwtService.signAsync({
-      id: user.id,
+    return tokenService.generateAccessToken({
+      sub: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
+  };
+
+  const generateRefreshToken = async (user: any) => {
+    return tokenService.generateRefreshToken({
+      sub: user.id,
+      name: user.name,
       email: user.email,
       role: user.role,
     });

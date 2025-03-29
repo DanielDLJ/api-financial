@@ -6,16 +6,16 @@ import { PrismaService } from '@/prisma/service/prisma.service';
 import { Role } from '@prisma/client';
 import { ApiErrorCode } from '@/common/enums/api-error-codes.enum';
 import { VALIDATION_PIPE_OPTIONS } from '@/common/config/validation.config';
-import { JwtService } from '@nestjs/jwt';
 import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
 import { EncryptionService } from '@/encryption/service/encryption.service';
 import { CreateCreditCardDto } from '@/credit-cards/dto/create-credit-card.dto';
 import { TestSetup } from '../../config/setupFiles';
+import { TokenService } from '@/token/service/token.service';
 
 describe('CreditCardsController (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let jwtService: JwtService;
+  let tokenService: TokenService;
   let encryptionService: EncryptionService;
 
   beforeAll(async () => {
@@ -25,7 +25,7 @@ describe('CreditCardsController (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     prisma = app.get<PrismaService>(PrismaService);
-    jwtService = app.get<JwtService>(JwtService);
+    tokenService = app.get<TokenService>(TokenService);
     encryptionService = app.get<EncryptionService>(EncryptionService);
 
     app.useGlobalFilters(new HttpExceptionFilter());
@@ -54,6 +54,16 @@ describe('CreditCardsController (e2e)', () => {
     it('should require authentication', () => {
       return request(app.getHttpServer())
         .post('/users/1/credit-cards')
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+
+    it('should return 401 for refresh token', async () => {
+      const user = await createUser(Role.USER);
+      const refreshToken = await generateRefreshToken(user);
+
+      return request(app.getHttpServer())
+        .post('/users/1/credit-cards')
+        .set('Authorization', `Bearer ${refreshToken}`)
         .expect(HttpStatus.UNAUTHORIZED);
     });
 
@@ -346,6 +356,16 @@ describe('CreditCardsController (e2e)', () => {
         .expect(HttpStatus.UNAUTHORIZED);
     });
 
+    it('should return 401 for refresh token', async () => {
+      const user = await createUser(Role.USER);
+      const refreshToken = await generateRefreshToken(user);
+
+      return request(app.getHttpServer())
+        .get('/users/1/credit-cards')
+        .set('Authorization', `Bearer ${refreshToken}`)
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+
     it('should list user credit cards', async () => {
       const user = await createUser(Role.USER);
       const token = await generateToken(user);
@@ -433,6 +453,16 @@ describe('CreditCardsController (e2e)', () => {
     it('should require authentication', () => {
       return request(app.getHttpServer())
         .get('/users/1/credit-cards/1')
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+
+    it('should return 401 for refresh token', async () => {
+      const user = await createUser(Role.USER);
+      const refreshToken = await generateRefreshToken(user);
+
+      return request(app.getHttpServer())
+        .get('/users/1/credit-cards/1')
+        .set('Authorization', `Bearer ${refreshToken}`)
         .expect(HttpStatus.UNAUTHORIZED);
     });
 
@@ -598,6 +628,16 @@ describe('CreditCardsController (e2e)', () => {
     it('should require authentication', () => {
       return request(app.getHttpServer())
         .patch('/users/1/credit-cards/1')
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+
+    it('should return 401 for refresh token', async () => {
+      const user = await createUser(Role.USER);
+      const refreshToken = await generateRefreshToken(user);
+
+      return request(app.getHttpServer())
+        .patch('/users/1/credit-cards/1')
+        .set('Authorization', `Bearer ${refreshToken}`)
         .expect(HttpStatus.UNAUTHORIZED);
     });
 
@@ -941,6 +981,16 @@ describe('CreditCardsController (e2e)', () => {
         .expect(HttpStatus.UNAUTHORIZED);
     });
 
+    it('should return 401 for refresh token', async () => {
+      const user = await createUser(Role.USER);
+      const refreshToken = await generateRefreshToken(user);
+
+      return request(app.getHttpServer())
+        .delete('/users/1/credit-cards/1')
+        .set('Authorization', `Bearer ${refreshToken}`)
+        .expect(HttpStatus.UNAUTHORIZED);
+    });
+
     it('should soft delete a credit card', async () => {
       const user = await createUser(Role.USER);
       const token = await generateToken(user);
@@ -1127,8 +1177,18 @@ describe('CreditCardsController (e2e)', () => {
   };
 
   const generateToken = async (user: any) => {
-    return jwtService.signAsync({
-      id: user.id,
+    return tokenService.generateAccessToken({
+      sub: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
+  };
+
+  const generateRefreshToken = async (user: any) => {
+    return tokenService.generateRefreshToken({
+      sub: user.id,
+      name: user.name,
       email: user.email,
       role: user.role,
     });
