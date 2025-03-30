@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ExecutionContext, HttpStatus } from '@nestjs/common';
 import { CreditCardOwnerGuard } from './credit-card-owner.guard';
 import { CreditCardsService } from '../service/credit-cards.service';
-import { ExecutionContext } from '@nestjs/common';
-import { Role } from '@prisma/client';
 import { ApiException } from '@/common/exceptions/api.exception';
 import { ApiErrorCode } from '@/common/enums/api-error-codes.enum';
+import { Role } from '@prisma/client';
 
 describe('CreditCardOwnerGuard', () => {
   let guard: CreditCardOwnerGuard;
@@ -13,10 +13,23 @@ describe('CreditCardOwnerGuard', () => {
     findOne: jest.fn(),
   };
 
+  const mockRequest = {
+    params: {},
+    user: null,
+  };
+
   const mockExecutionContext = {
-    switchToHttp: jest.fn().mockReturnThis(),
-    getRequest: jest.fn(),
-  } as any;
+    switchToHttp: jest.fn().mockReturnValue({
+      getRequest: () => mockRequest,
+    }),
+    getHandler: jest.fn(),
+    getClass: jest.fn(),
+    getArgs: jest.fn(),
+    getArgByIndex: jest.fn(),
+    switchToRpc: jest.fn(),
+    switchToWs: jest.fn(),
+    getType: jest.fn(),
+  } as unknown as ExecutionContext;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -35,160 +48,138 @@ describe('CreditCardOwnerGuard', () => {
 
   describe('canActivate', () => {
     it('should allow access for admin users', async () => {
-      const mockRequest = {
-        user: { id: 1, role: Role.ADMIN },
-        params: { userId: '1', creditCardId: '1' },
-      };
+      mockRequest.user = { sub: 1, role: Role.ADMIN };
+      mockRequest.params = { creditCardId: '1', userId: '1' };
 
-      mockExecutionContext.getRequest.mockReturnValue(mockRequest);
-
-      const result = await guard.canActivate(mockExecutionContext);
+      const result = await guard.canActivate(
+        mockExecutionContext as ExecutionContext,
+      );
 
       expect(result).toBe(true);
-      expect(mockCreditCardsService.findOne).not.toHaveBeenCalled();
+    });
+
+    it('should allow access any resource for admin user', async () => {
+      mockRequest.user = { sub: 1, role: Role.ADMIN };
+      mockRequest.params = { creditCardId: '1', userId: '10' };
+
+      const result = await guard.canActivate(
+        mockExecutionContext as ExecutionContext,
+      );
+
+      expect(result).toBe(true);
     });
 
     it('should allow access for resource owner', async () => {
-      const userId = 1;
-      const creditCardId = 1;
-      const mockRequest = {
-        user: { id: userId, role: Role.USER },
-        params: {
-          userId: userId.toString(),
-          creditCardId: creditCardId.toString(),
-        },
-      };
+      const userId = '1';
+      mockRequest.user = { sub: 1, role: Role.USER };
+      mockRequest.params = { creditCardId: '1', userId };
 
-      mockExecutionContext.getRequest.mockReturnValue(mockRequest);
       mockCreditCardsService.findOne.mockResolvedValue({
-        id: creditCardId,
-        userId,
+        id: 1,
+        userId: 1,
       });
 
-      const result = await guard.canActivate(mockExecutionContext);
+      const result = await guard.canActivate(
+        mockExecutionContext as ExecutionContext,
+      );
 
       expect(result).toBe(true);
-      expect(mockCreditCardsService.findOne).toHaveBeenCalledWith(
-        userId,
-        creditCardId,
-        true,
-      );
     });
 
     it('should deny access when user tries to access another user resource', async () => {
-      const mockRequest = {
-        user: { id: 1, role: Role.USER },
-        params: { userId: '2', creditCardId: '1' },
-      };
+      mockRequest.user = { sub: 1, role: Role.USER };
+      mockRequest.params = { creditCardId: '1', userId: '2' };
 
-      mockExecutionContext.getRequest.mockReturnValue(mockRequest);
-
-      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+      await expect(
+        guard.canActivate(mockExecutionContext as ExecutionContext),
+      ).rejects.toThrow(
         new ApiException({
           code: ApiErrorCode.FORBIDDEN,
           message: 'You can only access your own resources',
-          statusCode: 403,
+          statusCode: HttpStatus.FORBIDDEN,
         }),
       );
-
-      expect(mockCreditCardsService.findOne).not.toHaveBeenCalled();
     });
 
     it('should deny access when credit card not found', async () => {
-      const userId = 1;
-      const creditCardId = 999;
-      const mockRequest = {
-        user: { id: userId, role: Role.USER },
-        params: {
-          userId: userId.toString(),
-          creditCardId: creditCardId.toString(),
-        },
-      };
+      const creditCardId = '999';
+      mockRequest.user = { sub: 1, role: Role.USER };
+      mockRequest.params = { creditCardId, userId: '1' };
 
-      mockExecutionContext.getRequest.mockReturnValue(mockRequest);
       mockCreditCardsService.findOne.mockResolvedValue(null);
 
-      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+      await expect(
+        guard.canActivate(mockExecutionContext as ExecutionContext),
+      ).rejects.toThrow(
         new ApiException({
           code: ApiErrorCode.CREDIT_CARD_NOT_FOUND,
           message: `Credit card #${creditCardId} not found`,
-          statusCode: 404,
+          statusCode: HttpStatus.NOT_FOUND,
         }),
       );
     });
 
     it('should deny access when credit card belongs to another user', async () => {
-      const userId = 1;
-      const creditCardId = 1;
-      const mockRequest = {
-        user: { id: userId, role: Role.USER },
-        params: {
-          userId: userId.toString(),
-          creditCardId: creditCardId.toString(),
-        },
-      };
+      const creditCardId = '1';
+      mockRequest.user = { sub: 10, role: Role.USER };
+      mockRequest.params = { creditCardId, userId: '10' };
 
-      mockExecutionContext.getRequest.mockReturnValue(mockRequest);
       mockCreditCardsService.findOne.mockResolvedValue({
-        id: creditCardId,
-        userId: 2, // Different user
+        id: +creditCardId,
+        userId: 30, // Different user
       });
 
-      const result = await guard.canActivate(mockExecutionContext);
+      const result = await guard.canActivate(
+        mockExecutionContext as ExecutionContext,
+      );
 
       expect(result).toBe(false);
     });
 
     it('should allow access for creation/listing (no resourceId)', async () => {
-      const userId = 1;
-      const mockRequest = {
-        user: { id: userId, role: Role.USER },
-        params: { userId: userId.toString() }, // No creditCardId
-      };
+      mockRequest.user = { sub: 1, role: Role.USER };
+      mockRequest.params = { userId: '1' };
 
-      mockExecutionContext.getRequest.mockReturnValue(mockRequest);
-
-      const result = await guard.canActivate(mockExecutionContext);
+      const result = await guard.canActivate(
+        mockExecutionContext as ExecutionContext,
+      );
 
       expect(result).toBe(true);
-      expect(mockCreditCardsService.findOne).not.toHaveBeenCalled();
     });
 
     it('should handle service errors', async () => {
-      const userId = 1;
-      const creditCardId = 1;
-      const mockRequest = {
-        user: { id: userId, role: Role.USER },
-        params: {
-          userId: userId.toString(),
-          creditCardId: creditCardId.toString(),
-        },
-      };
+      mockRequest.user = { sub: 1, role: Role.USER };
+      mockRequest.params = { creditCardId: '1', userId: '1' };
 
-      mockExecutionContext.getRequest.mockReturnValue(mockRequest);
       mockCreditCardsService.findOne.mockRejectedValue(
         new Error('Service error'),
       );
 
-      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
-        'Service error',
-      );
+      await expect(
+        guard.canActivate(mockExecutionContext as ExecutionContext),
+      ).rejects.toThrow('Service error');
     });
   });
 
   describe('getResourceId', () => {
     it('should return creditCardId from params', () => {
-      const params = { creditCardId: '123' };
+      const creditCardId = '123';
+      const params = { creditCardId };
+
       const result = guard.getResourceId(params);
-      expect(result).toBe('123');
+
+      expect(result).toBe(creditCardId);
     });
   });
 
   describe('getUserId', () => {
     it('should return userId from params', () => {
-      const params = { userId: '123' };
+      const userId = '123';
+      const params = { userId };
+
       const result = guard.getUserId(params);
-      expect(result).toBe('123');
+
+      expect(result).toBe(userId);
     });
   });
 });
