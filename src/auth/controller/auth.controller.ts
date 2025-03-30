@@ -11,6 +11,8 @@ import { SignInDto } from '../dto/sign-in.dto';
 import { SignInResponseDto } from '../dto/sign-in-response.dto';
 import { SignUpDto } from '../dto/sign-up.dto';
 import { SignUpResponseDto } from '../dto/sign-up-response.dto';
+import { RefreshTokenDto } from '../dto/refresh-token.dto';
+import { RefreshTokenResponseDto } from '../dto/refresh-token-response.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -43,5 +45,17 @@ export class AuthController {
   })
   signUp(@Body() signUpDto: SignUpDto) {
     return this.authService.signUp(signUpDto);
+  }
+
+  @Public()
+  @Post('refresh-token')
+  @ApiOperation({ summary: 'Refresh token' })
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({
+    description: 'Token refreshed',
+    type: RefreshTokenResponseDto,
+  })
+  refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
+    return this.authService.refreshToken(refreshTokenDto.token);
   }
 }

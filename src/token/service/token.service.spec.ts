@@ -8,6 +8,7 @@ import { Role } from '@prisma/client';
 import { Scope } from '../enum/scope.enum';
 import { ITokenPayload } from '../interface/token-payload.interface';
 import { HttpStatus } from '@nestjs/common';
+import { ITokenDecoded } from '../interface/token-decoded.interface';
 
 describe('TokenService', () => {
   let service: TokenService;
@@ -230,6 +231,40 @@ describe('TokenService', () => {
         refresh_token: refreshToken,
         user: mockPayload,
       });
+    });
+
+    it('should generate both access and refresh tokens with decoded payload', async () => {
+      const decodedPayload: ITokenDecoded = {
+        ...mockPayload,
+        scope: Scope.ACCESS,
+        iat: 123,
+        exp: 456,
+      };
+
+      const accessToken = 'access-token';
+      const refreshToken = 'refresh-token';
+
+      mockJwtService.signAsync
+        .mockResolvedValueOnce(accessToken)
+        .mockResolvedValueOnce(refreshToken);
+
+      const result = await service.generateToken(decodedPayload);
+
+      expect(result).toEqual({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        user: mockPayload,
+      });
+    });
+
+    it('should throw when payload is invalid', async () => {
+      await expect(service.generateToken(null)).rejects.toThrow(
+        new ApiException({
+          code: ApiErrorCode.TOKEN_INVALID,
+          message: 'Invalid token payload',
+          statusCode: HttpStatus.UNAUTHORIZED,
+        }),
+      );
     });
   });
 

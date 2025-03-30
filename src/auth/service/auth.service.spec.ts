@@ -7,6 +7,8 @@ import { Role } from '@prisma/client';
 import { ApiException } from '@/common/exceptions/api.exception';
 import { ApiErrorCode } from '@/common/enums/api-error-codes.enum';
 import { HttpStatus } from '@nestjs/common';
+import { ITokenPayload } from '@/token/interface/token-payload.interface';
+import { RefreshTokenResponseDto } from '../dto/refresh-token-response.dto';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -172,6 +174,83 @@ describe('AuthService', () => {
           code: ApiErrorCode.AUTH_USER_ALREADY_EXISTS,
           message: 'User already exists.',
           statusCode: HttpStatus.CONFLICT,
+        }),
+      );
+    });
+  });
+
+  describe('refreshToken', () => {
+    const token = 'refresh-token';
+    const user: ITokenPayload = {
+      sub: 1,
+      email: 'test@example.com',
+      name: 'Test User',
+      role: Role.USER,
+    };
+
+    it('should refresh the access token', async () => {
+      const expectedResponse: RefreshTokenResponseDto = {
+        access_token: 'access-token',
+        refresh_token: 'refresh-token',
+        user,
+      };
+
+      mockTokenService.verifyRefreshToken.mockResolvedValue(user);
+      mockTokenService.generateToken.mockResolvedValue(expectedResponse);
+
+      const result = await service.refreshToken(token);
+      console.log('result: ', result);
+      expect(result).toEqual(expectedResponse);
+    });
+
+    it('should throw an error if refresh token scope is invalid', async () => {
+      mockTokenService.verifyRefreshToken.mockRejectedValue(
+        new ApiException({
+          code: ApiErrorCode.TOKEN_REFRESH_INVALID,
+          message: 'Invalid refresh token scope',
+          statusCode: HttpStatus.UNAUTHORIZED,
+        }),
+      );
+
+      await expect(service.refreshToken(token)).rejects.toThrow(
+        new ApiException({
+          code: ApiErrorCode.TOKEN_REFRESH_INVALID,
+          message: 'Invalid refresh token scope',
+          statusCode: HttpStatus.UNAUTHORIZED,
+        }),
+      );
+    });
+    it('should throw an error if refresh token is expired', async () => {
+      mockTokenService.verifyRefreshToken.mockRejectedValue(
+        new ApiException({
+          code: ApiErrorCode.TOKEN_EXPIRED,
+          message: 'Refresh token expired',
+          statusCode: HttpStatus.UNAUTHORIZED,
+        }),
+      );
+
+      await expect(service.refreshToken(token)).rejects.toThrow(
+        new ApiException({
+          code: ApiErrorCode.TOKEN_EXPIRED,
+          message: 'Refresh token expired',
+          statusCode: HttpStatus.UNAUTHORIZED,
+        }),
+      );
+    });
+    it('should throw an error if refresh token is invalid', async () => {
+      mockTokenService.verifyRefreshToken.mockRejectedValue(
+        new ApiException({
+          code: ApiErrorCode.TOKEN_INVALID,
+          message: 'Invalid refresh token',
+          statusCode: HttpStatus.UNAUTHORIZED,
+        }),
+      );
+
+      await expect(service.refreshToken(token)).rejects.toThrow(
+        new ApiException({
+          code: ApiErrorCode.TOKEN_INVALID,
+          message: 'Invalid refresh token',
+          statusCode: HttpStatus.UNAUTHORIZED,
         }),
       );
     });

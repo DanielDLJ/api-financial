@@ -5,6 +5,7 @@ import { ITokenPayload } from '../interface/token-payload.interface';
 import { Scope } from '../enum/scope.enum';
 import { ApiErrorCode } from '@/common/enums/api-error-codes.enum';
 import { ApiException } from '@/common/exceptions/api.exception';
+import { ITokenDecoded } from '../interface/token-decoded.interface';
 
 @Injectable()
 export class TokenService {
@@ -58,7 +59,7 @@ export class TokenService {
     );
   }
 
-  async verifyAccessToken(token: string): Promise<ITokenPayload> {
+  async verifyAccessToken(token: string): Promise<ITokenDecoded> {
     try {
       const decoded = await this.jwtService.verifyAsync(token, {
         secret: this.accessTokenSecret,
@@ -92,7 +93,7 @@ export class TokenService {
     }
   }
 
-  async verifyRefreshToken(token: string): Promise<ITokenPayload> {
+  async verifyRefreshToken(token: string): Promise<ITokenDecoded> {
     try {
       const decoded = await this.jwtService.verifyAsync(token, {
         secret: this.refreshTokenSecret,
@@ -112,21 +113,38 @@ export class TokenService {
 
       if (error?.name === 'TokenExpiredError') {
         throw new ApiException({
-          code: ApiErrorCode.TOKEN_EXPIRED,
+          code: ApiErrorCode.TOKEN_REFRESH_EXPIRED,
           message: 'Refresh token expired',
           statusCode: HttpStatus.UNAUTHORIZED,
         });
       }
 
       throw new ApiException({
-        code: ApiErrorCode.TOKEN_INVALID,
+        code: ApiErrorCode.TOKEN_REFRESH_INVALID,
         message: 'Invalid refresh token',
         statusCode: HttpStatus.UNAUTHORIZED,
       });
     }
   }
 
-  async generateToken(payload: ITokenPayload) {
+  async generateToken(payload: ITokenPayload | ITokenDecoded) {
+    if (!payload)
+      throw new ApiException({
+        code: ApiErrorCode.TOKEN_INVALID,
+        message: 'Invalid token payload',
+        statusCode: HttpStatus.UNAUTHORIZED,
+      });
+
+    if ('scope' in payload) {
+      delete payload.scope;
+    }
+    if ('iat' in payload) {
+      delete payload.iat;
+    }
+    if ('exp' in payload) {
+      delete payload.exp;
+    }
+
     const [accessToken, refreshToken] = await Promise.all([
       this.generateAccessToken(payload),
       this.generateRefreshToken(payload),

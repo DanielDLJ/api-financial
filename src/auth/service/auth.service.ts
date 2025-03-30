@@ -74,4 +74,9 @@ export class AuthService {
     };
     return this.tokenService.generateToken(payload);
   }
+
+  async refreshToken(token: string) {
+    const payload = await this.tokenService.verifyRefreshToken(token);
+    return this.tokenService.generateToken(payload);
+  }
 }

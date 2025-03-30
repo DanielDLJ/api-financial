@@ -7,6 +7,9 @@ import { TokenService } from '@/token/service/token.service';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '@prisma/client';
+import { RefreshTokenDto } from '../dto/refresh-token.dto';
+import { RefreshTokenResponseDto } from '../dto/refresh-token-response.dto';
+import { ITokenPayload } from '@/token/interface/token-payload.interface';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -14,6 +17,7 @@ describe('AuthController', () => {
   const mockAuthService = {
     signIn: jest.fn(),
     signUp: jest.fn(),
+    refreshToken: jest.fn(),
   };
 
   const mockUsersService = {
@@ -136,6 +140,41 @@ describe('AuthController', () => {
 
       expect(result).toEqual(expectedResponse);
       expect(mockAuthService.signUp).toHaveBeenCalledWith(signUpDto);
+    });
+  });
+
+  describe('refreshToken', () => {
+    it('should refresh the access token', async () => {
+      const refreshTokenDto: RefreshTokenDto = {
+        token: 'refresh-token',
+      };
+      const user: ITokenPayload = {
+        sub: 1,
+        email: 'test@example.com',
+        name: 'Test User',
+        role: Role.USER,
+      };
+      const expectedResponse: RefreshTokenResponseDto = {
+        access_token: 'access-token',
+        refresh_token: 'refresh-token',
+        user,
+      };
+
+      mockAuthService.refreshToken.mockResolvedValue(expectedResponse);
+      mockTokenService.verifyRefreshToken.mockResolvedValue(user);
+      mockTokenService.generateToken.mockResolvedValue({
+        access_token: 'access-token',
+        refresh_token: 'refresh-token',
+        user,
+      });
+
+      const result = await controller.refreshToken(refreshTokenDto);
+
+      expect(result).toEqual(expectedResponse);
+      expect(mockAuthService.refreshToken).toHaveBeenCalledWith(
+        refreshTokenDto.token,
+      );
+      expect(result).toEqual(expectedResponse);
     });
   });
 });
