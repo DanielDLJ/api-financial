@@ -147,19 +147,30 @@ describe('UsersService', () => {
   describe('update', () => {
     it('should update a user', async () => {
       const userId = 1;
-      const updateUserDto = { name: 'Updated Name' };
-      const updatedUser = { id: userId, name: 'Updated Name' };
+      const hashedPassword = 'hashedPassword';
+      const updateUserDto = {
+        name: 'Updated Name',
+        password: 'newPassword',
+      };
+      const updatedUser = {
+        id: userId,
+        name: 'Updated Name',
+        password: hashedPassword,
+      };
 
+      mockEncryptionService.generateHashPassword.mockReturnValue(
+        hashedPassword,
+      );
       mockUsersRepository.findOne.mockResolvedValue({ id: userId });
       mockUsersRepository.update.mockResolvedValue(updatedUser);
 
       const result = await service.update(userId, updateUserDto);
 
       expect(result).toEqual(updatedUser);
-      expect(mockUsersRepository.update).toHaveBeenCalledWith(
-        userId,
-        updateUserDto,
-      );
+      expect(mockUsersRepository.update).toHaveBeenCalledWith(userId, {
+        ...updateUserDto,
+        password: hashedPassword,
+      });
     });
 
     it('should throw if user not found', async () => {
