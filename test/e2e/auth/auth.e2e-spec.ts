@@ -177,6 +177,115 @@ describe('AuthController (e2e)', () => {
     });
   });
 
+  describe('/auth/refresh-token (POST)', () => {
+    it('should refresh access token with valid refresh token', async () => {
+      const password = 'password123';
+      const user = await createUser(Role.USER, password);
+
+      // Simulate sign-in to get refresh token
+      const signInResponse = await request(app.getHttpServer())
+        .post('/auth/sign-in')
+        .send({
+          email: user.email,
+          password,
+        })
+        .expect(HttpStatus.OK);
+
+      const refreshToken = signInResponse.body.refresh_token;
+
+      const response = await request(app.getHttpServer())
+        .post('/auth/refresh-token')
+        .send({ token: refreshToken })
+        .expect(HttpStatus.OK);
+
+      expect(response.body).toHaveProperty('access_token');
+      expect(response.body.user).toEqual({
+        sub: user.id,
+        email: user.email,
+        name: user.name,
+        role: Role.USER,
+      });
+    });
+
+    it('should return error for deleted user', async () => {
+      const password = 'password123';
+      const user = await createUser(Role.USER, password);
+
+      // Simulate sign-in to get refresh token
+      const signInResponse = await request(app.getHttpServer())
+        .post('/auth/sign-in')
+        .send({
+          email: user.email,
+          password,
+        })
+        .expect(HttpStatus.OK);
+
+      // Delete the user
+      await deleteUser(user.id);
+
+      const refreshToken = signInResponse.body.refresh_token;
+
+      const response = await request(app.getHttpServer())
+        .post('/auth/refresh-token')
+        .send({ token: refreshToken })
+        .expect(HttpStatus.NOT_FOUND);
+
+      expect(response.body).toEqual({
+        code: ApiErrorCode.USER_NOT_FOUND,
+        message: `User #${user.id} not found`,
+      });
+    });
+
+    it('should return error for invalid scope', async () => {
+      const password = 'password123';
+      const user = await createUser(Role.USER, password);
+      const signInResponse = await request(app.getHttpServer())
+        .post('/auth/sign-in')
+        .send({
+          email: user.email,
+          password,
+        })
+        .expect(HttpStatus.OK);
+
+      const accessToken = signInResponse.body.access_token;
+
+      const response = await request(app.getHttpServer())
+        .post('/auth/refresh-token')
+        .send({ token: accessToken })
+        .expect(HttpStatus.UNAUTHORIZED);
+
+      expect(response.body).toEqual({
+        code: ApiErrorCode.TOKEN_REFRESH_INVALID,
+        message: 'Invalid refresh token',
+      });
+    });
+
+    it('should return error for invalid refresh token', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/auth/refresh-token')
+        .send({ token: 'invalid-token' })
+        .expect(HttpStatus.UNAUTHORIZED);
+
+      expect(response.body).toEqual({
+        code: ApiErrorCode.TOKEN_REFRESH_INVALID,
+        message: 'Invalid refresh token',
+      });
+    });
+
+    it('should validate required fields', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/auth/refresh-token')
+        .send({})
+        .expect(HttpStatus.BAD_REQUEST);
+
+      expect(response.body).toEqual({
+        code: ApiErrorCode.VALIDATION_ERROR,
+        message: 'Validation failed',
+        details: ['token must be a string'],
+      });
+    });
+  });
+
   // Helper functions
   const createUser = async (role: Role, password: string) => {
     const timestamp = Date.now();
@@ -191,5 +300,12 @@ describe('AuthController (e2e)', () => {
         role,
       },
     });
+  };
+
+  const deleteUser = async (id: number) => {
+    const data = {
+      deletedAt: new Date(),
+    };
+    return await prisma.user.update({ where: { id }, data });
   };
 });
