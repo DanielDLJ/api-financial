@@ -77,6 +77,10 @@ export class AuthService {
 
   async refreshToken(token: string) {
     const payload = await this.tokenService.verifyRefreshToken(token);
+
+    // Check if user still exists
+    await this.usersService.findOne(payload.sub, false);
+
     return this.tokenService.generateToken(payload);
   }
 }

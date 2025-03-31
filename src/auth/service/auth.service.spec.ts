@@ -9,6 +9,7 @@ import { ApiErrorCode } from '@/common/enums/api-error-codes.enum';
 import { HttpStatus } from '@nestjs/common';
 import { ITokenPayload } from '@/token/interface/token-payload.interface';
 import { RefreshTokenResponseDto } from '../dto/refresh-token-response.dto';
+import { User } from '@/users/entities/user.entity';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -16,6 +17,7 @@ describe('AuthService', () => {
   const mockUsersService = {
     findByEmail: jest.fn(),
     create: jest.fn(),
+    findOne: jest.fn(),
   };
 
   const mockEncryptionService = {
@@ -188,6 +190,17 @@ describe('AuthService', () => {
       role: Role.USER,
     };
 
+    const dbUser: User = {
+      id: 1,
+      email: 'test@example.com',
+      name: 'Test User',
+      role: Role.USER,
+      password: 'hashedPassword',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: null,
+    };
+
     it('should refresh the access token', async () => {
       const expectedResponse: RefreshTokenResponseDto = {
         access_token: 'access-token',
@@ -196,11 +209,31 @@ describe('AuthService', () => {
       };
 
       mockTokenService.verifyRefreshToken.mockResolvedValue(user);
+      mockUsersService.findOne.mockResolvedValue(dbUser);
       mockTokenService.generateToken.mockResolvedValue(expectedResponse);
 
       const result = await service.refreshToken(token);
       console.log('result: ', result);
       expect(result).toEqual(expectedResponse);
+    });
+
+    it('should throw an error when user is already deleted', async () => {
+      mockTokenService.verifyRefreshToken.mockResolvedValue(user);
+      mockUsersService.findOne.mockRejectedValue(
+        new ApiException({
+          code: ApiErrorCode.USER_NOT_FOUND,
+          message: `User #${dbUser.id} not found`,
+          statusCode: HttpStatus.NOT_FOUND,
+        }),
+      );
+
+      await expect(service.refreshToken(token)).rejects.toThrow(
+        new ApiException({
+          code: ApiErrorCode.USER_NOT_FOUND,
+          message: `User #${dbUser.id} not found`,
+          statusCode: HttpStatus.NOT_FOUND,
+        }),
+      );
     });
 
     it('should throw an error if refresh token scope is invalid', async () => {
