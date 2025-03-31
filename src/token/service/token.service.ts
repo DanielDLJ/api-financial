@@ -61,7 +61,7 @@ export class TokenService {
 
   async verifyAccessToken(token: string): Promise<ITokenDecoded> {
     try {
-      const decoded = await this.jwtService.verifyAsync(token, {
+      const decoded = await this.jwtService.verifyAsync<ITokenDecoded>(token, {
         secret: this.accessTokenSecret,
       });
 
@@ -77,17 +77,12 @@ export class TokenService {
     } catch (error) {
       if (error instanceof ApiException) throw error;
 
-      if (error?.name === 'TokenExpiredError') {
-        throw new ApiException({
-          code: ApiErrorCode.TOKEN_EXPIRED,
-          message: 'Access token expired',
-          statusCode: HttpStatus.UNAUTHORIZED,
-        });
-      }
-
+      const isExpired = error?.name === 'TokenExpiredError';
       throw new ApiException({
-        code: ApiErrorCode.TOKEN_INVALID,
-        message: 'Invalid access token',
+        code: isExpired
+          ? ApiErrorCode.TOKEN_EXPIRED
+          : ApiErrorCode.TOKEN_INVALID,
+        message: isExpired ? 'Access token expired' : 'Invalid access token',
         statusCode: HttpStatus.UNAUTHORIZED,
       });
     }
@@ -95,7 +90,7 @@ export class TokenService {
 
   async verifyRefreshToken(token: string): Promise<ITokenDecoded> {
     try {
-      const decoded = await this.jwtService.verifyAsync(token, {
+      const decoded = await this.jwtService.verifyAsync<ITokenDecoded>(token, {
         secret: this.refreshTokenSecret,
       });
 
@@ -111,17 +106,12 @@ export class TokenService {
     } catch (error) {
       if (error instanceof ApiException) throw error;
 
-      if (error?.name === 'TokenExpiredError') {
-        throw new ApiException({
-          code: ApiErrorCode.TOKEN_REFRESH_EXPIRED,
-          message: 'Refresh token expired',
-          statusCode: HttpStatus.UNAUTHORIZED,
-        });
-      }
-
+      const isExpired = error?.name === 'TokenExpiredError';
       throw new ApiException({
-        code: ApiErrorCode.TOKEN_REFRESH_INVALID,
-        message: 'Invalid refresh token',
+        code: isExpired
+          ? ApiErrorCode.TOKEN_REFRESH_EXPIRED
+          : ApiErrorCode.TOKEN_REFRESH_INVALID,
+        message: isExpired ? 'Refresh token expired' : 'Invalid refresh token',
         statusCode: HttpStatus.UNAUTHORIZED,
       });
     }
