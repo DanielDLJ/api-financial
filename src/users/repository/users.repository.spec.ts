@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersRepository } from './user.repository';
 import { PrismaService } from '@/prisma/service/prisma.service';
 import { Role } from '@prisma/client';
-import { HttpStatus, InternalServerErrorException } from '@nestjs/common';
+import { HttpStatus } from '@nestjs/common';
 import { ApiException } from '@/common/exceptions/api.exception';
 import { ApiErrorCode } from '@/common/enums/api-error-codes.enum';
 
