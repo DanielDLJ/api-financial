@@ -89,7 +89,7 @@ describe('AuthService', () => {
       const result = await service.signIn(email, password);
 
       expect(result).toEqual(expectedResponse);
-      expect(mockUsersService.findByEmail).toHaveBeenCalledWith(email);
+      expect(mockUsersService.findByEmail).toHaveBeenCalledWith(email, true);
       expect(mockEncryptionService.compareHashPassword).toHaveBeenCalledWith(
         password,
         user.password,
@@ -97,12 +97,41 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException if user is not found', async () => {
-      mockUsersService.findByEmail.mockResolvedValue(null);
+      mockUsersService.findByEmail.mockRejectedValue(
+        new ApiException({
+          code: ApiErrorCode.USER_NOT_FOUND,
+          message: `User #${email} not found`,
+          statusCode: HttpStatus.NOT_FOUND,
+        }),
+      );
 
       await expect(service.signIn(email, password)).rejects.toThrow(
         new ApiException({
           code: ApiErrorCode.AUTH_USER_NOT_FOUND,
-          message: 'User not found',
+          message:
+            'Authentication failed. Please check your email and password.',
+          statusCode: HttpStatus.UNAUTHORIZED,
+        }),
+      );
+    });
+
+    it('should throw UnauthorizedException if user is deleted', async () => {
+      const user = {
+        id: 1,
+        email,
+        password: 'hashedPassword',
+        name: 'Test User',
+        role: Role.USER,
+        deletedAt: new Date(),
+      };
+
+      mockUsersService.findByEmail.mockResolvedValue(user);
+
+      await expect(service.signIn(email, password)).rejects.toThrow(
+        new ApiException({
+          code: ApiErrorCode.AUTH_USER_NOT_FOUND,
+          message:
+            'Authentication failed. Please check your email and password.',
           statusCode: HttpStatus.UNAUTHORIZED,
         }),
       );
@@ -123,8 +152,27 @@ describe('AuthService', () => {
       await expect(service.signIn(email, password)).rejects.toThrow(
         new ApiException({
           code: ApiErrorCode.AUTH_INVALID_CREDENTIALS,
-          message: 'Invalid credentials',
-          statusCode: 401,
+          message:
+            'Authentication failed. Please check your email and password.',
+          statusCode: HttpStatus.UNAUTHORIZED,
+        }),
+      );
+    });
+
+    it('should throw InternalServerErrorException on unexpected error', async () => {
+      mockUsersService.findByEmail.mockRejectedValue(
+        new ApiException({
+          code: ApiErrorCode.DATABASE_ERROR,
+          message: 'Database operation failed',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        }),
+      );
+
+      await expect(service.signIn(email, password)).rejects.toThrow(
+        new ApiException({
+          code: ApiErrorCode.DATABASE_ERROR,
+          message: 'Database operation failed',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         }),
       );
     });
@@ -137,7 +185,7 @@ describe('AuthService', () => {
       password: 'password123',
     };
 
-    it('should sign up a user and return an access token', async () => {
+    it('should successfully sign up a new user when the email is not registered', async () => {
       const createdUser = {
         id: 1,
         ...signUpDto,
@@ -155,7 +203,13 @@ describe('AuthService', () => {
         },
       };
 
-      mockUsersService.findByEmail.mockResolvedValue(null);
+      mockUsersService.findByEmail.mockRejectedValue(
+        new ApiException({
+          code: ApiErrorCode.USER_NOT_FOUND,
+          message: `User #${signUpDto.email} not found`,
+          statusCode: HttpStatus.NOT_FOUND,
+        }),
+      );
       mockUsersService.create.mockResolvedValue(createdUser);
       mockTokenService.generateToken.mockResolvedValue(expectedResponse);
 
@@ -168,14 +222,84 @@ describe('AuthService', () => {
       });
     });
 
-    it('should throw ConflictException if user already exists', async () => {
+    it('should throw ConflictException when trying to sign up an already registered user', async () => {
       mockUsersService.findByEmail.mockResolvedValue({ id: 1 });
 
       await expect(service.signUp(signUpDto)).rejects.toThrow(
         new ApiException({
           code: ApiErrorCode.AUTH_USER_ALREADY_EXISTS,
-          message: 'User already exists.',
+          message:
+            'This email address is already registered. Please use a different email or try to login.',
           statusCode: HttpStatus.CONFLICT,
+        }),
+      );
+    });
+
+    it('should throw ConflictException when trying to sign up a deleted user', async () => {
+      mockUsersService.findByEmail.mockResolvedValue({
+        id: 1,
+        deletedAt: new Date(),
+      });
+
+      await expect(service.signUp(signUpDto)).rejects.toThrow(
+        new ApiException({
+          code: ApiErrorCode.AUTH_USER_ALREADY_EXISTS,
+          message:
+            'This email address is already registered. Please use a different email or try to login.',
+          statusCode: HttpStatus.CONFLICT,
+        }),
+      );
+    });
+
+    it('should throw InternalServerErrorException if a database error occurs while checking for user existence', async () => {
+      mockUsersService.findByEmail.mockRejectedValue(
+        new ApiException({
+          code: ApiErrorCode.DATABASE_ERROR,
+          message: 'Database error',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        }),
+      );
+
+      await expect(service.signUp(signUpDto)).rejects.toThrow(
+        new ApiException({
+          code: ApiErrorCode.DATABASE_ERROR,
+          message: 'Database error',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        }),
+      );
+    });
+
+    it('should throw InternalServerErrorException if an unexpected error occurs', async () => {
+      mockUsersService.findByEmail.mockRejectedValue(
+        new Error('Unexpected error'),
+      );
+
+      await expect(service.signUp(signUpDto)).rejects.toThrow(
+        new Error('Unexpected error'),
+      );
+    });
+
+    it('should throw InternalServerErrorException if user creation fails', async () => {
+      mockUsersService.findByEmail.mockRejectedValue(
+        new ApiException({
+          code: ApiErrorCode.USER_NOT_FOUND,
+          message: `User #${signUpDto.email} not found`,
+          statusCode: HttpStatus.NOT_FOUND,
+        }),
+      );
+      mockUsersService.create.mockRejectedValue(
+        new ApiException({
+          code: ApiErrorCode.DATABASE_ERROR,
+          message: 'Database operation failed',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        }),
+      );
+
+      await expect(service.signUp(signUpDto)).rejects.toThrow(
+        new ApiException({
+          code: ApiErrorCode.DATABASE_ERROR,
+          message: 'Database operation failed',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         }),
       );
     });
