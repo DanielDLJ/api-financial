@@ -1,9 +1,4 @@
-import {
-  ConflictException,
-  HttpStatus,
-  Injectable,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { PrismaService } from '../../prisma/service/prisma.service';
@@ -31,7 +26,7 @@ export class UsersRepository {
           statusCode: HttpStatus.CONFLICT,
         });
       }
-      throw new InternalServerErrorException(error);
+      this.handleGenericDatabaseError('create', error);
     }
   }
 
@@ -56,7 +51,7 @@ export class UsersRepository {
         new MetaData(page, limit, total),
       );
     } catch (error) {
-      throw new InternalServerErrorException(error);
+      this.handleGenericDatabaseError('findAll', error);
     }
   }
 
@@ -72,15 +67,17 @@ export class UsersRepository {
       });
       return user;
     } catch (error) {
-      throw new InternalServerErrorException(error);
+      this.handleGenericDatabaseError('findOne', error);
     }
   }
 
-  async findByEmail(email: string) {
+  async findByEmail(email: string, showDeleted = false) {
+    const where = showDeleted ? { email } : { email, deletedAt: null };
+
     try {
-      return await this.prisma.user.findUnique({ where: { email } });
+      return await this.prisma.user.findUnique({ where });
     } catch (error) {
-      throw new InternalServerErrorException(error);
+      this.handleGenericDatabaseError('findByEmail', error);
     }
   }
 
@@ -95,7 +92,7 @@ export class UsersRepository {
           statusCode: HttpStatus.CONFLICT,
         });
       }
-      throw new InternalServerErrorException(error);
+      this.handleGenericDatabaseError('update', error);
     }
   }
 
@@ -106,7 +103,12 @@ export class UsersRepository {
       };
       return await this.prisma.user.update({ where: { id }, data });
     } catch (error) {
-      throw new InternalServerErrorException(error);
+      this.handleGenericDatabaseError('remove', error);
     }
+  }
+
+  private handleGenericDatabaseError(operation: string, error: any) {
+    this.prisma.handleGenericDatabaseError('user_repository', operation, error);
+    throw error;
   }
 }
