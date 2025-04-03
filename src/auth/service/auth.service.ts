@@ -17,53 +17,97 @@ export class AuthService {
     private readonly tokenService: TokenService,
   ) {}
 
-  async signIn(email: string, pass: string) {
-    const user = await this.usersService.findByEmail(email);
+  async signIn(email: string, password: string) {
+    try {
+      const user = await this.usersService.findByEmail(email, true);
 
-    if (!user)
-      throw new ApiException({
-        code: ApiErrorCode.AUTH_USER_NOT_FOUND,
-        message: 'User not found',
-        statusCode: HttpStatus.UNAUTHORIZED,
-      });
+      // Check if user exists and isn't deleted
+      if (!user || user.deletedAt) {
+        throw new ApiException({
+          code: ApiErrorCode.AUTH_USER_NOT_FOUND,
+          message:
+            'Authentication failed. Please check your email and password.',
+          statusCode: HttpStatus.UNAUTHORIZED,
+        });
+      }
 
-    const isMatch = await this.encryptionService.compareHashPassword(
-      pass,
-      user?.password,
-    );
+      const isMatch = await this.encryptionService.compareHashPassword(
+        password,
+        user.password,
+      );
 
-    if (!isMatch)
-      throw new ApiException({
-        code: ApiErrorCode.AUTH_INVALID_CREDENTIALS,
-        message: 'Invalid credentials',
-        statusCode: HttpStatus.UNAUTHORIZED,
-      });
+      if (!isMatch) {
+        throw new ApiException({
+          code: ApiErrorCode.AUTH_INVALID_CREDENTIALS,
+          message:
+            'Authentication failed. Please check your email and password.',
+          statusCode: HttpStatus.UNAUTHORIZED,
+        });
+      }
 
-    const payload: ITokenPayload = {
-      sub: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    };
-    return this.tokenService.generateToken(payload);
+      const payload: ITokenPayload = {
+        sub: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      };
+
+      return this.tokenService.generateToken(payload);
+    } catch (error) {
+      // Handle specific "user not found" error from user service
+      if (
+        error instanceof ApiException &&
+        error.error.code === ApiErrorCode.USER_NOT_FOUND
+      ) {
+        throw new ApiException({
+          code: ApiErrorCode.AUTH_USER_NOT_FOUND,
+          message:
+            'Authentication failed. Please check your email and password.',
+          statusCode: HttpStatus.UNAUTHORIZED,
+        });
+      }
+
+      // Re-throw other errors
+      throw error;
+    }
   }
 
   async signUp(signUpDto: SignUpDto) {
-    const userExists = await this.usersService.findByEmail(signUpDto.email);
+    try {
+      const userExists = await this.usersService.findByEmail(
+        signUpDto.email,
+        true,
+      );
 
-    if (userExists)
-      throw new ApiException({
-        code: ApiErrorCode.AUTH_USER_ALREADY_EXISTS,
-        message: 'User already exists.',
-        statusCode: HttpStatus.CONFLICT,
-      });
+      if (userExists) {
+        throw new ApiException({
+          code: ApiErrorCode.AUTH_USER_ALREADY_EXISTS,
+          message:
+            'This email address is already registered. Please use a different email or try to login.',
+          statusCode: HttpStatus.CONFLICT,
+        });
+      }
+    } catch (error) {
+      // Only allow "user not found" errors to continue
+      if (
+        !(error instanceof ApiException) ||
+        !(
+          error instanceof ApiException &&
+          error.error.code === ApiErrorCode.USER_NOT_FOUND
+        )
+      ) {
+        throw error;
+      }
+      // User not found is expected - proceed with registration
+    }
 
     const createUserDto: CreateUserDto = {
       email: signUpDto.email,
       name: signUpDto.name,
       password: signUpDto.password,
-      role: Role.USER,
+      role: Role.USER, // Default role for new users
     };
+
     const user = await this.usersService.create(createUserDto);
 
     const payload: ITokenPayload = {
@@ -72,6 +116,7 @@ export class AuthService {
       name: user.name,
       role: user.role,
     };
+
     return this.tokenService.generateToken(payload);
   }
 
