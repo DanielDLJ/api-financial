@@ -17,6 +17,7 @@ describe('UsersRepository', () => {
       update: jest.fn(),
       count: jest.fn(),
     },
+    handleGenericDatabaseError: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -72,11 +73,23 @@ describe('UsersRepository', () => {
 
     it('should throw InternalServerErrorException for unknown database errors', async () => {
       mockPrismaService.user.create.mockRejectedValue(
-        new Error('Unknown error'),
+        new Error('Prisma query timeout'),
       );
 
+      mockPrismaService.handleGenericDatabaseError.mockImplementation(() => {
+        throw new ApiException({
+          code: ApiErrorCode.DATABASE_ERROR,
+          message: 'Database operation failed',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        });
+      });
+
       await expect(repository.create(createUserDto)).rejects.toThrow(
-        InternalServerErrorException,
+        new ApiException({
+          code: ApiErrorCode.DATABASE_ERROR,
+          message: 'Database operation failed',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        }),
       );
     });
   });
@@ -127,11 +140,23 @@ describe('UsersRepository', () => {
 
     it('should throw InternalServerErrorException on database error', async () => {
       mockPrismaService.user.findMany.mockRejectedValue(
-        new Error('Database error'),
+        new Error('Prisma query timeout'),
       );
 
+      mockPrismaService.handleGenericDatabaseError.mockImplementation(() => {
+        throw new ApiException({
+          code: ApiErrorCode.DATABASE_ERROR,
+          message: 'Database operation failed',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        });
+      });
+
       await expect(repository.findAll(query)).rejects.toThrow(
-        InternalServerErrorException,
+        new ApiException({
+          code: ApiErrorCode.DATABASE_ERROR,
+          message: 'Database operation failed',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        }),
       );
     });
   });
@@ -175,11 +200,23 @@ describe('UsersRepository', () => {
 
     it('should throw InternalServerErrorException on database error', async () => {
       mockPrismaService.user.findUnique.mockRejectedValue(
-        new Error('Database error'),
+        new Error('Prisma query timeout'),
       );
 
+      mockPrismaService.handleGenericDatabaseError.mockImplementation(() => {
+        throw new ApiException({
+          code: ApiErrorCode.DATABASE_ERROR,
+          message: 'Database operation failed',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        });
+      });
+
       await expect(repository.findOne(userId)).rejects.toThrow(
-        InternalServerErrorException,
+        new ApiException({
+          code: ApiErrorCode.DATABASE_ERROR,
+          message: 'Database operation failed',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        }),
       );
     });
   });
@@ -191,7 +228,19 @@ describe('UsersRepository', () => {
       const expectedUser = { id: 1, email };
       mockPrismaService.user.findUnique.mockResolvedValue(expectedUser);
 
-      const result = await repository.findByEmail(email);
+      const result = await repository.findByEmail(email, false);
+
+      expect(result).toEqual(expectedUser);
+      expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({
+        where: { email, deletedAt: null },
+      });
+    });
+
+    it('should include deleted users when showDeleted is true', async () => {
+      const expectedUser = { id: 1, email, deletedAt: new Date() };
+      mockPrismaService.user.findUnique.mockResolvedValue(expectedUser);
+
+      const result = await repository.findByEmail(email, true);
 
       expect(result).toEqual(expectedUser);
       expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({
@@ -209,11 +258,23 @@ describe('UsersRepository', () => {
 
     it('should throw InternalServerErrorException on database error', async () => {
       mockPrismaService.user.findUnique.mockRejectedValue(
-        new Error('Database error'),
+        new Error('Prisma query timeout'),
       );
 
+      mockPrismaService.handleGenericDatabaseError.mockImplementation(() => {
+        throw new ApiException({
+          code: ApiErrorCode.DATABASE_ERROR,
+          message: 'Database operation failed',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        });
+      });
+
       await expect(repository.findByEmail(email)).rejects.toThrow(
-        InternalServerErrorException,
+        new ApiException({
+          code: ApiErrorCode.DATABASE_ERROR,
+          message: 'Database operation failed',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        }),
       );
     });
   });
@@ -252,11 +313,23 @@ describe('UsersRepository', () => {
 
     it('should throw InternalServerErrorException for unknown database errors', async () => {
       mockPrismaService.user.update.mockRejectedValue(
-        new Error('Unknown error'),
+        new Error('Prisma query timeout'),
       );
 
+      mockPrismaService.handleGenericDatabaseError.mockImplementation(() => {
+        throw new ApiException({
+          code: ApiErrorCode.DATABASE_ERROR,
+          message: 'Database operation failed',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        });
+      });
+
       await expect(repository.update(userId, updateData)).rejects.toThrow(
-        InternalServerErrorException,
+        new ApiException({
+          code: ApiErrorCode.DATABASE_ERROR,
+          message: 'Database operation failed',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        }),
       );
     });
   });
@@ -282,11 +355,23 @@ describe('UsersRepository', () => {
 
     it('should throw InternalServerErrorException on database error', async () => {
       mockPrismaService.user.update.mockRejectedValue(
-        new Error('Database error'),
+        new Error('Prisma query timeout'),
       );
 
+      mockPrismaService.handleGenericDatabaseError.mockImplementation(() => {
+        throw new ApiException({
+          code: ApiErrorCode.DATABASE_ERROR,
+          message: 'Database operation failed',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        });
+      });
+
       await expect(repository.remove(userId)).rejects.toThrow(
-        InternalServerErrorException,
+        new ApiException({
+          code: ApiErrorCode.DATABASE_ERROR,
+          message: 'Database operation failed',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        }),
       );
     });
   });
