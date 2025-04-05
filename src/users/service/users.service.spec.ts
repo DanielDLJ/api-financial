@@ -231,27 +231,34 @@ describe('UsersService', () => {
   });
 
   describe('findByEmail', () => {
-    it('should return a user by email', async () => {
-      const user = {
-        id: 1,
-        email: 'test@example.com',
-        name: 'Test User',
-      };
+    const user = {
+      id: 1,
+      email: 'test@example.com',
+      name: 'Test User',
+    };
 
+    it('should return a user by email', async () => {
       mockUsersRepository.findByEmail.mockResolvedValue(user);
 
-      const result = await service.findByEmail(user.email);
+      const result = await service.findByEmail(user.email, false);
 
       expect(result).toEqual(user);
-      expect(mockUsersRepository.findByEmail).toHaveBeenCalledWith(user.email);
+      expect(mockUsersRepository.findByEmail).toHaveBeenCalledWith(
+        user.email,
+        false,
+      );
     });
 
-    it('should return null if user not found', async () => {
+    it('should return error if user not found', async () => {
       mockUsersRepository.findByEmail.mockResolvedValue(null);
 
-      const result = await service.findByEmail('nonexistent@example.com');
-
-      expect(result).toBeNull();
+      await expect(service.findByEmail(user.email, false)).rejects.toThrow(
+        new ApiException({
+          code: ApiErrorCode.USER_NOT_FOUND,
+          message: `User #${user.email} not found`,
+          statusCode: HttpStatus.NOT_FOUND,
+        }),
+      );
     });
   });
 });
