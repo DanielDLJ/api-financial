@@ -54,8 +54,17 @@ export class UsersService {
     return user;
   }
 
-  async findByEmail(email: string) {
-    return await this.usersRepository.findByEmail(email);
+  async findByEmail(email: string, showDeleted = false) {
+    const user = await this.usersRepository.findByEmail(email, showDeleted);
+
+    if (!user) {
+      throw new ApiException({
+        code: ApiErrorCode.USER_NOT_FOUND,
+        message: `User #${email} not found`,
+        statusCode: HttpStatus.NOT_FOUND,
+      });
+    }
+    return user;
   }
 
   async update(id: number, updateUserDto: UpdateUserDto) {
