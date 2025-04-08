@@ -61,6 +61,25 @@ describe('AuthController (e2e)', () => {
       });
     });
 
+    it('should return error for deleted user', async () => {
+      const password = 'password123';
+      const user = await createUser(Role.USER, password);
+      await deleteUser(user.id);
+
+      const response = await request(app.getHttpServer())
+        .post('/auth/sign-in')
+        .send({
+          email: user.email,
+          password,
+        })
+        .expect(HttpStatus.UNAUTHORIZED);
+
+      expect(response.body).toEqual({
+        code: ApiErrorCode.AUTH_USER_NOT_FOUND,
+        message: 'Authentication failed. Please check your email and password.',
+      });
+    });
+
     it('should return error for non-existent user', async () => {
       const response = await request(app.getHttpServer())
         .post('/auth/sign-in')
@@ -72,7 +91,7 @@ describe('AuthController (e2e)', () => {
 
       expect(response.body).toEqual({
         code: ApiErrorCode.AUTH_USER_NOT_FOUND,
-        message: 'User not found',
+        message: 'Authentication failed. Please check your email and password.',
       });
     });
 
@@ -90,7 +109,7 @@ describe('AuthController (e2e)', () => {
 
       expect(response.body).toEqual({
         code: ApiErrorCode.AUTH_INVALID_CREDENTIALS,
-        message: 'Invalid credentials',
+        message: 'Authentication failed. Please check your email and password.',
       });
     });
 
@@ -140,6 +159,25 @@ describe('AuthController (e2e)', () => {
       expect(user.role).toBe(Role.USER);
     });
 
+    it('should return error for trying to create deleted user', async () => {
+      const password = 'password123';
+      const user = await createUser(Role.USER, password);
+      await deleteUser(user.id);
+      const response = await request(app.getHttpServer())
+        .post('/auth/sign-up')
+        .send({
+          email: user.email,
+          password,
+          name: 'New User',
+        })
+        .expect(HttpStatus.CONFLICT);
+      expect(response.body).toEqual({
+        code: ApiErrorCode.AUTH_USER_ALREADY_EXISTS,
+        message:
+          'This email address is already registered. Please use a different email or try to login.',
+      });
+    });
+
     it('should return error for existing email', async () => {
       const password = 'password123';
       const user = await createUser(Role.USER, password);
@@ -155,7 +193,8 @@ describe('AuthController (e2e)', () => {
 
       expect(response.body).toEqual({
         code: ApiErrorCode.AUTH_USER_ALREADY_EXISTS,
-        message: 'User already exists.',
+        message:
+          'This email address is already registered. Please use a different email or try to login.',
       });
     });
 
