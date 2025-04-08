@@ -1,4 +1,4 @@
-.PHONY: help up stop-api enter down clean rebuild test test-integration wait-db up-api up-db setup-db restart-api
+.PHONY: help up stop-api enter down clean rebuild test test-report test-integration wait-db up-api up-db setup-db restart-api
 
 help: ## Show this help message
 	@echo Commands available:
@@ -6,13 +6,14 @@ help: ## Show this help message
 	@echo   make up               - Start all containers with full database setup (detached mode)
 	@echo   make stop-api         - Stop API
 	@echo   make enter            - Enter API container
-	@echo   make down            - Stop and remove all containers
-	@echo   make setup-db        - Setup database with migrations and seeds
-	@echo   make test            - Run unit tests
+	@echo   make down             - Stop and remove all containers
+	@echo   make setup-db         - Setup database with migrations and seeds
+	@echo   make test             - Run unit tests
+	@echo   make test-report      - Run unit tests and generate coverage report
 	@echo   make test-integration - Run integration tests in isolated environment
-	@echo   make clean           - Clean up (remove containers, volumes, node_modules and dist)
-	@echo   make rebuild         - Rebuild containers from scratch
-	@echo   make restart-api     - Restart API container
+	@echo   make clean            - Clean up (remove containers, volumes, node_modules and dist)
+	@echo   make rebuild          - Rebuild containers from scratch
+	@echo   make restart-api      - Restart API container
 	@echo.
 
 wait-db: ## Wait for database to be ready
@@ -58,6 +59,9 @@ down: ## Stop and remove all containers
 
 test: ## Run unit tests
 	npm run test
+
+test-report: ## Run unit tests and generate coverage report
+	npm run test:cov
 
 test-integration: ## Run integration tests
 	docker-compose -f docker-compose.test.yml up -d mysql_test

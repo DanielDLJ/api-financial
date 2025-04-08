@@ -99,13 +99,13 @@ make up-prod
 
 ```bash
 # Unit tests
-npm run test
+make test
+
+# Unit tests with coverage
+make test-report
 
 # Integration tests
 make test-integration
-
-# Coverage
-npm run test:cov
 ```
 
 ## 📖 API Documentation
