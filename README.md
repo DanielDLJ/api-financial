@@ -66,7 +66,7 @@ API Financial is a backend application developed with NestJS for personal financ
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/api-financial.git
+git clone https://github.com/DanielDLJ/api-financial.git
 
 # Enter the directory
 cd api-financial
@@ -142,5 +142,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <div align="center">
-  Made with ❤️ by <a href="https://github.com/daniellj">Daniel Leme Junior</a>
+  Made with ❤️ by <a href="https://github.com/DanielDLJ">Daniel Leme Junior</a>
 </div>
